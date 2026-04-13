@@ -13,7 +13,7 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
   String? _selectedFileName;
 
   Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'zip', 'rar'],
     );

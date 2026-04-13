@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hlms_mobile/features/home/ui/home_screen_tab.dart';
-import 'package:hlms_mobile/features/classroom/ui/assignment_list_screen.dart';
+import 'package:hlms_mobile/features/learning/ui/my_learning_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -14,7 +14,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _pages = [
     const HomeScreenTab(),
-    const AssignmentListScreen(), // Temporarily replacing My Learning with Assignment List for showcase
+    const MyLearningScreen(),
     const Center(child: Text('Profile')),
   ];
 

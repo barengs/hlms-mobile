@@ -219,6 +219,7 @@ class HomeScreenTab extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           );
         },
       ),
