@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:hlms_mobile/features/onboarding/ui/onboarding_screen.dart';
+import 'package:hlms_mobile/features/onboarding/ui/splash_screen.dart';
 import 'package:hlms_mobile/features/auth/ui/login_screen.dart';
+import 'package:hlms_mobile/features/auth/ui/register_screen.dart';
 import 'package:hlms_mobile/features/home/ui/main_navigation_screen.dart';
 import 'package:hlms_mobile/features/course/ui/course_detail_screen.dart';
 import 'package:hlms_mobile/features/learning/ui/video_player_screen.dart';
@@ -19,11 +20,15 @@ class AppRouter {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const OnboardingScreen(),
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/home',

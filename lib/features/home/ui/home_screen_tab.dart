@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class HomeScreenTab extends StatelessWidget {
   const HomeScreenTab({super.key});
@@ -8,286 +7,386 @@ class HomeScreenTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeroSection(),
+          _buildHeader(),
           const SizedBox(height: 24),
-          _buildSectionHeader('Kategori Populer'),
-          _buildCategories(),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Kelas Unggulan'),
-          _buildFeaturedCourses(),
-          const SizedBox(height: 24),
-          _buildSectionHeader('Lanjutkan Belajar'),
-          _buildResumeLearning(),
+          _buildSearchBar(),
+          const SizedBox(height: 20),
+          _buildCategoryChips(),
+          const SizedBox(height: 32),
+          _buildSectionHeader('Continue Learning', onSeeAll: () {}),
+          const SizedBox(height: 20),
+          _buildContinueLearningList(),
+          const SizedBox(height: 32),
+          _buildSectionHeader('Popular Courses', onSeeAll: () {}),
+          const SizedBox(height: 20),
+          _buildPopularCourses(),
           const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _buildHeroSection() {
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: Colors.blue.shade50,
+          backgroundImage: const NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RichText(
+                text: const TextSpan(
+                  style: TextStyle(fontSize: 22, color: Colors.black),
+                  children: [
+                    TextSpan(text: 'Welcome, '),
+                    TextSpan(
+                      text: 'Fawais',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Text(
+                'Ready to learn today?',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        Icon(Icons.settings_outlined, color: Colors.grey.shade300, size: 30),
+        const SizedBox(width: 12),
+        Icon(Icons.notifications_outlined, color: Colors.grey.shade300, size: 30),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0D47A1),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const TextField(
+        decoration: InputDecoration(
+          hintText: 'Search Here',
+          hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
+          prefixIcon: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(Icons.search, color: Colors.grey, size: 30),
+          ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 18),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Halo, Pelajar!',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Siap untuk belajar hal baru hari ini?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari kursus...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+    );
+  }
+
+  Widget _buildCategoryChips() {
+    final categories = ['UI/UX', 'Graphics Design', 'Figma', 'Web Dev'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: categories.map((cat) {
+          final isFirst = cat == categories.first;
+          return Container(
+            margin: const EdgeInsets.only(right: 12),
+            child: Chip(
+              label: Text(
+                cat,
+                style: TextStyle(
+                  color: isFirst ? Colors.black : Colors.black87,
+                  fontSize: 16,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50),
+                side: BorderSide(color: Colors.grey.shade200),
               ),
             ),
-          ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
+  Widget _buildSectionHeader(String title, {required VoidCallback onSeeAll}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        TextButton(
+          onPressed: onSeeAll,
+          child: Text(
+            'See All',
+            style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF212121),
+              color: Colors.grey.shade400,
             ),
           ),
-          TextButton(
-            onPressed: () {},
-            child: const Text('Lihat Semua'),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCategories() {
-    final categories = [
-      {'icon': Icons.code, 'name': 'Programming'},
-      {'icon': Icons.design_services, 'name': 'Design'},
-      {'icon': Icons.business, 'name': 'Business'},
-      {'icon': Icons.language, 'name': 'Language'},
+  Widget _buildContinueLearningList() {
+    final courses = [
+      {
+        'title': 'Graphic Design',
+        'instructor': 'Syed Hasnain',
+        'progress': 0.45,
+        'image': 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=400&auto=format&fit=crop',
+      },
+      {
+        'title': 'Wireframing',
+        'instructor': 'Shoaib Hassan',
+        'progress': 0.45,
+        'image': 'https://images.unsplash.com/photo-1545235617-9465d2a55698?q=80&w=400&auto=format&fit=crop',
+      },
+      {
+        'title': 'Website Design',
+        'instructor': 'Dawar Hanif',
+        'progress': 0.45,
+        'image': 'https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=400&auto=format&fit=crop',
+      },
+      {
+        'title': 'Video Editing',
+        'instructor': 'Ammar Ijaz',
+        'progress': 0.45,
+        'image': 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=400&auto=format&fit=crop',
+      },
     ];
 
     return SizedBox(
-      height: 100,
+      height: 240,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
+        physics: const BouncingScrollPhysics(),
+        itemCount: courses.length,
         itemBuilder: (context, index) {
-          final cat = categories[index];
+          final course = courses[index];
           return Container(
-            width: 80,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: const Color(0xFFE3F2FD),
-                  child: Icon(cat['icon'] as IconData, color: const Color(0xFF0D47A1)),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  cat['name'] as String,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFeaturedCourses() {
-    return SizedBox(
-      height: 250,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              // using dummy id
-              GoRouter.of(context).push('/course/1');
-            },
-            child: Container(
-              width: 200,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+            width: 220,
+            margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(color: Colors.grey.shade100),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 120,
-                  decoration: const BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    image: DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop'),
-                      fit: BoxFit.cover,
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      image: DecorationImage(
+                        image: NetworkImage(course['image'] as String),
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Fullstack Flutter & Laravel 11',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: const [
-                          Icon(Icons.star, color: Colors.orange, size: 16),
-                          SizedBox(width: 4),
-                          Text('4.8 (1.2k)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Rp 450.000',
-                        style: TextStyle(
-                          color: Color(0xFF0D47A1),
-                          fontWeight: FontWeight.bold,
+                Expanded(
+                  flex: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          course['title'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
-                    ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'By ${course['instructor']}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                              ),
+                            ),
+                            const Row(
+                              children: [
+                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: course['progress'] as double,
+                                backgroundColor: Colors.grey.shade100,
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
+                                minHeight: 5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${((course['progress'] as double) * 100).toInt()}% Done',
+                                style: TextStyle(color: Colors.grey.shade400, fontSize: 9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
           );
         },
       ),
     );
   }
 
-  Widget _buildResumeLearning() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade50, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.shade100),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: const DecorationImage(
-                image: NetworkImage('https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=200&auto=format&fit=crop'),
-                fit: BoxFit.cover,
+  Widget _buildPopularCourses() {
+    final popular = [
+      {
+        'title': 'Mastering Flutter UI',
+        'instructor': 'Alex Smith',
+        'price': 'Rp 250.000',
+        'rating': '4.9',
+        'students': '2.5k',
+        'image': 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?q=80&w=400&auto=format&fit=crop',
+      },
+      {
+        'title': 'Laravel for Beginners',
+        'instructor': 'Jane Doe',
+        'price': 'Rp 150.000',
+        'rating': '4.7',
+        'students': '1.8k',
+        'image': 'https://images.unsplash.com/photo-1599507591144-667d4f3ff3a2?q=80&w=400&auto=format&fit=crop',
+      },
+    ];
+
+    return Column(
+      children: popular.map((course) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Dasar Pemrograman React',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  image: DecorationImage(
+                    image: NetworkImage(course['image'] as String),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Bagian 2: State Management',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      course['title'] as String,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'By ${course['instructor']}',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          course['price'] as String,
+                          style: const TextStyle(
+                            color: Color(0xFF0D47A1),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.orange, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${course['rating']} (${course['students']})',
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: 0.6,
-                  backgroundColor: Colors.grey.shade200,
-                  color: const Color(0xFF0D47A1),
-                  borderRadius: BorderRadius.circular(4),
-                  minHeight: 6,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          IconButton(
-            icon: const Icon(Icons.play_circle_fill, color: Color(0xFF0D47A1), size: 40),
-            onPressed: () {},
-          )
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 }

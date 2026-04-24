@@ -6,7 +6,7 @@ class ApiClient {
 
   ApiClient() {
     _dio = Dio(BaseOptions(
-      baseUrl: 'http://localhost:8000/api', // Laravel default local API
+      baseUrl: 'https://molang.umediatama.com/api/v1', // Production API URL
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -22,71 +25,281 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() {
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Connect to AuthBloc/Laravel API
-      context.go('/home');
+      context.read<AuthBloc>().add(AuthLoginRequested(
+            _emailController.text,
+            _passwordController.text,
+          ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Masuk Akademik'),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+          context.go('/home');
+        } else if (state is AuthFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+          );
+        }
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 32),
-              Image.network(
-                'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-                height: 120,
-              ),
-              const SizedBox(height: 48),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Back Button
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
+                    onPressed: () => Navigator.of(context).pop(),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                ),
-                validator: (val) => val == null || val.isEmpty ? 'Masukkan email' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 24),
+                  
+                  // Header
+                  const Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Sign in',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Please Sign in with your account',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                validator: (val) => val == null || val.isEmpty ? 'Masukkan password' : null,
+                  const SizedBox(height: 48),
+
+                  // Email Field
+                  const Text(
+                    'Email Here',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your email',
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    validator: (val) => val == null || val.isEmpty ? 'Please enter email' : null,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Password Field
+                  const Text(
+                    'Password',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: !_isPasswordVisible,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your password',
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    validator: (val) => val == null || val.isEmpty ? 'Please enter password' : null,
+                  ),
+                  
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Forget Password?',
+                        style: TextStyle(color: Colors.black45),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Sign In Button
+                  BlocBuilder<AuthBloc, AuthState>(
+                    builder: (context, state) {
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: state is AuthLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF003399), // Dark Blue
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: state is AuthLoading 
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                'SIGN IN',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('Or Sign in with', style: TextStyle(color: Colors.black54)),
+                      ),
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Facebook Login
+                  _buildSocialButton(
+                    icon: Icons.facebook,
+                    label: 'Sign In with Facebook',
+                    backgroundColor: const Color(0xFF1877F2),
+                    textColor: Colors.white,
+                    onPressed: () {},
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Google Login
+                  _buildSocialButton(
+                    imagePath: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_\"G\"_logo.svg/1200px-Google_\"G\"_logo.svg.png',
+                    label: 'Sign In with Google',
+                    backgroundColor: Colors.white,
+                    textColor: Colors.black87,
+                    onPressed: () {},
+                    hasBorder: true,
+                  ),
+                  
+                  const SizedBox(height: 48),
+
+                  // Sign Up Footer
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Didn’t have an account? ', style: TextStyle(color: Colors.black54)),
+                      GestureDetector(
+                        onTap: () => context.push('/register'),
+                        child: const Text(
+                          'Sign up Here',
+                          style: TextStyle(
+                            color: Color(0xFF003399),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _login,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('MASUK'),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text('Lupa Password?'),
-              )
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    IconData? icon,
+    String? imagePath,
+    required String label,
+    required Color backgroundColor,
+    required Color textColor,
+    required VoidCallback onPressed,
+    bool hasBorder = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          side: hasBorder ? BorderSide(color: Colors.grey.shade300) : BorderSide.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) Icon(icon, color: Colors.white, size: 28),
+            if (imagePath != null)
+              Image.network(
+                imagePath,
+                height: 24,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.account_circle,
+                  color: Colors.grey,
+                  size: 24,
+                ),
+              ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
