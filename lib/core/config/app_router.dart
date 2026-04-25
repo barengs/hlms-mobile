@@ -10,6 +10,7 @@ import 'package:hlms_mobile/features/learning/ui/video_player_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_list_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_upload_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/quiz_screen.dart';
+import 'package:hlms_mobile/features/course/ui/enrollment_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -39,6 +40,13 @@ class AppRouter {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           return CourseDetailScreen(courseId: id);
+        },
+      ),
+      GoRoute(
+        path: '/course/enroll/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return EnrollmentScreen(courseId: id);
         },
       ),
       GoRoute(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreenTab extends StatelessWidget {
   const HomeScreenTab({super.key});
@@ -17,13 +18,13 @@ class HomeScreenTab extends StatelessWidget {
           const SizedBox(height: 20),
           _buildCategoryChips(),
           const SizedBox(height: 32),
-          _buildSectionHeader('Continue Learning', onSeeAll: () {}),
+          _buildSectionHeader('Lanjutkan Belajar', onSeeAll: () {}),
           const SizedBox(height: 20),
           _buildContinueLearningList(),
           const SizedBox(height: 32),
-          _buildSectionHeader('Popular Courses', onSeeAll: () {}),
+          _buildSectionHeader('Kursus Populer', onSeeAll: () {}),
           const SizedBox(height: 20),
-          _buildPopularCourses(),
+          _buildPopularCourses(context),
           const SizedBox(height: 32),
         ],
       ),
@@ -47,7 +48,7 @@ class HomeScreenTab extends StatelessWidget {
                 text: const TextSpan(
                   style: TextStyle(fontSize: 22, color: Colors.black),
                   children: [
-                    TextSpan(text: 'Welcome, '),
+                    TextSpan(text: 'Selamat Datang, '),
                     TextSpan(
                       text: 'Fawais',
                       style: TextStyle(
@@ -59,7 +60,7 @@ class HomeScreenTab extends StatelessWidget {
                 ),
               ),
               const Text(
-                'Ready to learn today?',
+                'Siap belajar apa hari ini?',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -88,7 +89,7 @@ class HomeScreenTab extends StatelessWidget {
       ),
       child: const TextField(
         decoration: InputDecoration(
-          hintText: 'Search Here',
+          hintText: 'Cari materi...',
           hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
           prefixIcon: Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
@@ -146,7 +147,7 @@ class HomeScreenTab extends StatelessWidget {
         TextButton(
           onPressed: onSeeAll,
           child: Text(
-            'See All',
+            'Lihat Semua',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey.shade400,
@@ -193,99 +194,102 @@ class HomeScreenTab extends StatelessWidget {
         itemCount: courses.length,
         itemBuilder: (context, index) {
           final course = courses[index];
-          return Container(
-            width: 220,
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(color: Colors.grey.shade100),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                      image: DecorationImage(
-                        image: NetworkImage(course['image'] as String),
-                        fit: BoxFit.cover,
+          return GestureDetector(
+            onTap: () => context.push('/course/1'),
+            child: Container(
+              width: 220,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                        image: DecorationImage(
+                          image: NetworkImage(course['image'] as String),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          course['title'] as String,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                  Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            course['title'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
                           ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'By ${course['instructor']}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Oleh ${course['instructor']}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                                ),
                               ),
-                            ),
-                            const Row(
-                              children: [
-                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                                Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: LinearProgressIndicator(
-                                value: course['progress'] as double,
-                                backgroundColor: Colors.grey.shade100,
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
-                                minHeight: 5,
+                              const Row(
+                                children: [
+                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                '${((course['progress'] as double) * 100).toInt()}% Done',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 9),
+                            ],
+                          ),
+                          Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: course['progress'] as double,
+                                  backgroundColor: Colors.grey.shade100,
+                                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
+                                  minHeight: 5,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  '${((course['progress'] as double) * 100).toInt()}% Selesai',
+                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -293,7 +297,7 @@ class HomeScreenTab extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularCourses() {
+  Widget _buildPopularCourses(BuildContext context) {
     final popular = [
       {
         'title': 'Mastering Flutter UI',
@@ -315,75 +319,78 @@ class HomeScreenTab extends StatelessWidget {
 
     return Column(
       children: popular.map((course) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  image: DecorationImage(
-                    image: NetworkImage(course['image'] as String),
-                    fit: BoxFit.cover,
+        return GestureDetector(
+          onTap: () => context.push('/course/1'),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(course['image'] as String),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course['title'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'By ${course['instructor']}',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          course['price'] as String,
-                          style: const TextStyle(
-                            color: Color(0xFF0D47A1),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.orange, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${course['rating']} (${course['students']})',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course['title'] as String,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Oleh ${course['instructor']}',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            course['price'] as String,
+                            style: const TextStyle(
+                              color: Color(0xFF0D47A1),
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.star, color: Colors.orange, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${course['rating']} (${course['students']})',
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList(),

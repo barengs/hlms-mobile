@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       children: [
                         Text(
-                          'Sign in',
+                          'Masuk',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Please Sign in with your account',
+                          'Silakan masuk dengan akun Anda',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.black54,
@@ -101,11 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                       fillColor: Colors.grey.shade50,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
@@ -138,11 +138,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: () {},
                       child: const Text(
-                        'Forget Password?',
+                        'Lupa Kata Sandi?',
                         style: TextStyle(color: Colors.black45),
                       ),
                     ),
@@ -174,14 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             backgroundColor: const Color(0xFF003399), // Dark Blue
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             elevation: 0,
                           ),
                           child: state is AuthLoading 
                             ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
-                                'SIGN IN',
+                                'MASUK',
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                         ),
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(child: Divider(color: Colors.grey.shade300)),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('Or Sign in with', style: TextStyle(color: Colors.black54)),
+                        child: Text('Atau masuk dengan', style: TextStyle(color: Colors.black54)),
                       ),
                       Expanded(child: Divider(color: Colors.grey.shade300)),
                     ],
@@ -206,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Facebook Login
                   _buildSocialButton(
                     icon: Icons.facebook,
-                    label: 'Sign In with Facebook',
+                    label: 'Masuk dengan Facebook',
                     backgroundColor: const Color(0xFF1877F2),
                     textColor: Colors.white,
                     onPressed: () {},
@@ -216,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Google Login
                   _buildSocialButton(
                     imagePath: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_\"G\"_logo.svg/1200px-Google_\"G\"_logo.svg.png',
-                    label: 'Sign In with Google',
+                    label: 'Masuk dengan Google',
                     backgroundColor: Colors.white,
                     textColor: Colors.black87,
                     onPressed: () {},
@@ -229,11 +229,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Didn’t have an account? ', style: TextStyle(color: Colors.black54)),
+                      const Text('Belum punya akun? ', style: TextStyle(color: Colors.black54)),
                       GestureDetector(
                         onTap: () => context.push('/register'),
                         child: const Text(
-                          'Sign up Here',
+                          'Daftar di sini',
                           style: TextStyle(
                             color: Color(0xFF003399),
                             fontWeight: FontWeight.bold,
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: backgroundColor,
           side: hasBorder ? BorderSide(color: Colors.grey.shade300) : BorderSide.none,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
         child: Row(

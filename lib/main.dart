@@ -35,6 +35,16 @@ class MolangApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           routerConfig: AppRouter.router,
           debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            return BlocListener<AuthBloc, AuthState>(
+              listener: (context, state) {
+                if (state is AuthUnauthenticated) {
+                  AppRouter.router.go('/login');
+                }
+              },
+              child: child!,
+            );
+          },
         ),
       ),
     );

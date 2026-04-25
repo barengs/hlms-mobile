@@ -1,163 +1,312 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class CourseDetailScreen extends StatelessWidget {
+class CourseDetailScreen extends StatefulWidget {
   final String courseId;
 
   const CourseDetailScreen({super.key, required this.courseId});
 
   @override
+  State<CourseDetailScreen> createState() => _CourseDetailScreenState();
+}
+
+class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(context),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Video/Header Section
+            _buildVideoHeader(context),
+            
+            // Tab Bar
+            _buildTabBar(),
+            
+            // Tab Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
                 children: [
-                  _buildCourseHeader(),
-                  const SizedBox(height: 24),
-                  _buildInstructorInfo(),
-                  const SizedBox(height: 24),
-                  _buildTabs(context),
+                  _buildOverviewTab(),
+                  _buildLessonsTab(),
+                  _buildReviewsTab(),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildBottomBar(context),
+      bottomNavigationBar: _buildBottomEnrollButton(),
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 220.0,
-      floating: false,
-      pinned: true,
-      backgroundColor: const Color(0xFF0D47A1),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => context.pop(),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop',
+  Widget _buildVideoHeader(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          height: 250,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: NetworkImage('https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&auto=format&fit=crop'),
               fit: BoxFit.cover,
             ),
-            Container(
-              color: Colors.black.withOpacity(0.4),
-            ),
-            Center(
-              child: IconButton(
-                icon: const Icon(Icons.play_circle_fill, size: 64, color: Colors.white),
-                onPressed: () {
-                  context.push('/video-player');
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCourseHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          ),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
               ),
-              child: const Text('Bestseller', style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: const Icon(Icons.play_arrow, size: 40, color: Color(0xFF003399)),
             ),
-            const SizedBox(width: 8),
-            const Text('Programming', style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
-          ],
+          ),
         ),
-        const SizedBox(height: 12),
-        const Text(
-          'Fullstack Flutter & Laravel 11 untuk Pemula',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 1.2),
+        // Back Button
+        Positioned(
+          top: 16,
+          left: 16,
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Belajar membuat aplikasi mobile dan backend web secara komprehensif. Mulai dari nol hingga deploy ke VPS.',
-          style: TextStyle(color: Colors.grey, height: 1.5),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: const [
-            Icon(Icons.star, color: Colors.orange, size: 20),
-            SizedBox(width: 4),
-            Text('4.8', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text(' (1,234 Ulasan)', style: TextStyle(color: Colors.grey)),
-            Spacer(),
-            Icon(Icons.people_alt_outlined, color: Colors.grey, size: 16),
-            SizedBox(width: 4),
-            Text('10k+ Siswa', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInstructorInfo() {
-    return Row(
-      children: [
-        const CircleAvatar(
-          radius: 24,
-          backgroundImage: NetworkImage('https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&auto=format&fit=crop'),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('Budi Santoso', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('Senior Software Engineer', style: TextStyle(color: Colors.grey, fontSize: 14)),
-            ],
+        // Bookmark Button
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.bookmark_border, color: Colors.white),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTabs(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
+  Widget _buildTabBar() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.black87,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: const BoxDecoration(
+          color: Color(0xFF003399),
+        ),
+        tabs: const [
+          Tab(text: 'Ringkasan'),
+          Tab(text: 'Materi'),
+          Tab(text: 'Ulasan'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const TabBar(
-            labelColor: Color(0xFF0D47A1),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF0D47A1),
-            tabs: [
-              Tab(text: 'Kurikulum'),
-              Tab(text: 'Tentang'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Graphic Design',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Oleh Syed Hasnain',
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    const Row(
+                      children: [
+                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
+                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
+                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
+                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
+                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '72\$',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                  Text(
+                    'Lorem Ipsum Text',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 400, // Fixed height for demo
-            child: TabBarView(
-              children: [
-                _buildCurriculum(),
-                _buildAboutSection(),
+          const SizedBox(height: 24),
+          RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 14, height: 1.5),
+              children: const [
+                TextSpan(text: 'Lorem ipsum dolor sit amet consectetur. Nec eget accumsan molestie proin. Integer rhoncus vitae nisi natoque ac mus tellus scelerisque gravida. Consectetur aliquet sit at diam. Augue eu mauris suspendisse adipiscing nibh. Nibh lorem id eu suspendisse nulla leo hendrerit. Erat tortor commodo quam fames et molestie. '),
+                TextSpan(
+                  text: 'Baca Selengkapnya',
+                  style: TextStyle(color: Color(0xFF003399), fontWeight: FontWeight.bold),
+                ),
               ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Info Grid
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 3,
+              children: [
+                _buildInfoItem(Icons.book, '80+ Materi'),
+                _buildInfoItem(Icons.workspace_premium, 'Sertifikat'),
+                _buildInfoItem(Icons.access_time_filled, '8 Minggu'),
+                _buildInfoItem(Icons.local_offer, 'Diskon 10%'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          const Text('Keahlian', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildSkillTag('Adobe'),
+              _buildSkillTag('Adobe Photo Shop'),
+              _buildSkillTag('Logo'),
+              _buildSkillTag('Designing'),
+              _buildSkillTag('Poster Design'),
+              _buildSkillTag('Figma'),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF003399), size: 24),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+      ],
+    );
+  }
+
+  Widget _buildSkillTag(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(50),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(label, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  Widget _buildLessonsTab() {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        _buildChapterHeader('Bab 1 : Apa itu Graphics Designing?'),
+        _buildLessonItem(Icons.play_circle_filled, 'Lorem ipsum dolor sit amet consectetur.'),
+        _buildLessonItem(Icons.list_alt, 'Lorem ipsum dolor sit amet consectetur.'),
+        _buildLessonItem(Icons.play_circle_filled, 'Lorem ipsum dolor sit amet consectetur.'),
+        _buildLessonItem(Icons.list_alt, 'Lorem ipsum dolor sit amet consectetur.'),
+        const SizedBox(height: 16),
+        _buildChapterHeader('Bab 2 : Apa itu Logo Designing?', isExpanded: false),
+        _buildChapterHeader('Bab 3 : Apa itu Poster Designing?', isExpanded: false),
+        _buildChapterHeader('Bab 4 : Apa itu Picture Editing?', isExpanded: false),
+      ],
+    );
+  }
+
+  Widget _buildChapterHeader(String title, {bool isExpanded = true}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
+          if (!isExpanded) const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLessonItem(IconData icon, String title) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF003399), size: 30),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ),
         ],
@@ -165,99 +314,100 @@ class CourseDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCurriculum() {
-    final modules = [
-      {'title': 'Sesi 1: Pengenalan Flutter', 'lessons': 4, 'time': '1 jam'},
-      {'title': 'Sesi 2: Dasar Dart', 'lessons': 6, 'time': '2 jam'},
-      {'title': 'Sesi 3: UI/UX di Flutter', 'lessons': 5, 'time': '1.5 jam'},
-    ];
-
+  Widget _buildReviewsTab() {
     return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: modules.length,
+      padding: const EdgeInsets.all(24),
+      itemCount: 3,
       itemBuilder: (context, index) {
-        final mod = modules[index];
-        return ExpansionTile(
-          title: Text(mod['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('${mod['lessons']} pelajaran • ${mod['time']}'),
-          children: [
-            ListTile(
-              leading: const Icon(Icons.play_circle_outline, color: Color(0xFF0D47A1)),
-              title: const Text('Instalasi SDK'),
-              trailing: const Text('10:00'),
-              onTap: () {
-                context.push('/video-player');
-              },
-            ),
-            const ListTile(
-              leading: Icon(Icons.text_snippet_outlined, color: Colors.orange),
-              title: Text('Setup Editor (VSCode)'),
-              trailing: Text('Bacaan'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.help_outline, color: Colors.purple),
-              title: const Text('Kuis Sesi 1'),
-              trailing: const Text('Kuis'),
-              onTap: () {
-                context.push('/quiz');
-              },
-            ),
-          ],
+        return Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.grey.shade200,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Muhammad Arsalan', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Siswa', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Row(
+                    children: [
+                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
+                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
+                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
+                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
+                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Lorem ipsum dolor sit amet consectetur. Euismod turpis tortor sollicitudin et. Quam tempor tincidunt a nunc feugiat semper tristique id.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildAboutSection() {
-    return const Text(
-      'Kursus ini dirancang khusus untuk pemula yang ingin terjun ke dunia software engineering menggunakan teknologi modern yaitu Flutter dan Laravel. Anda akan dibimbing tahap demi tahap dengan project nyata (Real-world project).',
-      style: TextStyle(height: 1.5, color: Colors.black87),
-    );
-  }
-
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomEnrollButton() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, -3),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
-        child: Row(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Harga Kelas', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                Text('Rp 450.000', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF0D47A1))),
-              ],
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  // Checkout logic
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D47A1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Beli Kursus', style: TextStyle(fontWeight: FontWeight.bold)),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: () => context.push('/course/enroll/${widget.courseId}'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF003399),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
+              elevation: 0,
             ),
-          ],
+            child: const Text(
+              'DAFTAR SEKARANG',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
       ),
     );

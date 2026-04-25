@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hlms_mobile/features/home/ui/home_screen_tab.dart';
 import 'package:hlms_mobile/features/learning/ui/my_learning_screen.dart';
+import 'package:hlms_mobile/features/profile/ui/profile_screen_tab.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -15,7 +19,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _pages = [
     const HomeScreenTab(),
     const MyLearningScreen(),
-    const Center(child: Text('Profile')),
+    const Center(child: Text('Pesan')),
+    const ProfileScreenTab(),
   ];
 
   @override

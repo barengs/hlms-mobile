@@ -78,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       children: [
                         Text(
-                          'Sign up',
+                          'Daftar',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -87,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Please create your account',
+                          'Silakan buat akun baru Anda',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.black54,
@@ -100,33 +100,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   // Name Field
                   const Text(
-                    'Full Name',
+                    'Nama Lengkap',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
-                    decoration: _inputDecoration('Enter your full name'),
-                    validator: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
+                    decoration: _inputDecoration('Masukkan nama lengkap Anda'),
+                    validator: (val) => val == null || val.isEmpty ? 'Masukkan nama lengkap Anda' : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Email Field
                   const Text(
-                    'Email Here',
+                    'Email',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
-                    decoration: _inputDecoration('Enter your email'),
-                    validator: (val) => val == null || val.isEmpty ? 'Please enter email' : null,
+                    decoration: _inputDecoration('Masukkan email Anda'),
+                    validator: (val) => val == null || val.isEmpty ? 'Masukkan email Anda' : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Password Field
                   const Text(
-                    'Password',
+                    'Kata Sandi',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     decoration: _inputDecoration(
-                      'Enter your password',
+                      'Masukkan kata sandi Anda',
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -145,13 +145,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                       ),
                     ),
-                    validator: (val) => val != null && val.length < 8 ? 'Password must be at least 8 characters' : null,
+                    validator: (val) => val != null && val.length < 8 ? 'Kata sandi minimal 8 karakter' : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Confirm Password Field
                   const Text(
-                    'Confirm Password',
+                    'Konfirmasi Kata Sandi',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
@@ -159,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _confirmPasswordController,
                     obscureText: !_isConfirmPasswordVisible,
                     decoration: _inputDecoration(
-                      'Confirm your password',
+                      'Konfirmasi kata sandi Anda',
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -186,14 +186,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             backgroundColor: const Color(0xFF003399),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             elevation: 0,
                           ),
                           child: state is AuthLoading 
                             ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
-                                'SIGN UP',
+                                'DAFTAR',
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                         ),
@@ -206,11 +206,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Already have an account? ', style: TextStyle(color: Colors.black54)),
+                      const Text('Sudah punya akun? ', style: TextStyle(color: Colors.black54)),
                       GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
                         child: const Text(
-                          'Sign in Here',
+                          'Masuk di sini',
                           style: TextStyle(
                             color: Color(0xFF003399),
                             fontWeight: FontWeight.bold,
@@ -236,11 +236,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       fillColor: Colors.grey.shade50,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
     );

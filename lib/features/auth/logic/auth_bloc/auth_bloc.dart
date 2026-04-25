@@ -64,7 +64,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _authRepository.logout();
+    try {
+      await _authRepository.logout();
+    } catch (e) {
+      // Even if API fails, we want to logout locally
+    }
     emit(AuthUnauthenticated());
   }
 }
