@@ -1,11 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hlms_mobile/core/models/enrollment.dart';
+import 'package:hlms_mobile/features/course/data/course_repository.dart';
+import 'package:hlms_mobile/features/classroom/data/classroom_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class MyLearningScreen extends StatelessWidget {
+class MyLearningScreen extends StatefulWidget {
   const MyLearningScreen({super.key});
 
   @override
+  State<MyLearningScreen> createState() => _MyLearningScreenState();
+}
+
+class _MyLearningScreenState extends State<MyLearningScreen> {
+  List<Enrollment> _allLearning = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final data = await context.read<CourseRepository>().getMyLearning();
+      if (mounted) {
+        setState(() {
+          _allLearning = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final courses = _allLearning.where((e) => e.type == 'course').toList();
+    final classes = _allLearning.where((e) => e.type != 'course').toList();
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -25,10 +67,10 @@ class MyLearningScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            _SelfPacedTab(),
-            _CohortClassTab(),
+            _SelfPacedTab(enrollments: courses),
+            _CohortClassTab(enrollments: classes, onRefresh: _loadData),
           ],
         ),
       ),
@@ -37,36 +79,34 @@ class MyLearningScreen extends StatelessWidget {
 }
 
 class _SelfPacedTab extends StatelessWidget {
-  const _SelfPacedTab();
+  final List<Enrollment> enrollments;
+  const _SelfPacedTab({required this.enrollments});
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    if (enrollments.isEmpty) {
+      return const Center(child: Text('Belum ada kursus mandiri.'));
+    }
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      children: [
-        _buildSelfPacedCard(
-          context,
-          title: 'Dasar Pemrograman React',
-          instructor: 'Budi Santoso',
-          progress: 0.6,
-          imageUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?q=80&w=200&auto=format&fit=crop',
-        ),
-        const SizedBox(height: 16),
-        _buildSelfPacedCard(
-          context,
-          title: 'Mastering Figma UI/UX',
-          instructor: 'Siti Aminah',
-          progress: 0.2,
-          imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=200&auto=format&fit=crop',
-        ),
-      ],
+      itemCount: enrollments.length,
+      itemBuilder: (context, index) {
+        final enrollment = enrollments[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildSelfPacedCard(
+            context,
+            enrollment: enrollment,
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildSelfPacedCard(BuildContext context, {required String title, required String instructor, required double progress, required String imageUrl}) {
+  Widget _buildSelfPacedCard(BuildContext context, {required Enrollment enrollment}) {
     return InkWell(
       onTap: () {
-        context.push('/course/1');
+        context.push('/course/${enrollment.slug}');
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -78,22 +118,22 @@ class _SelfPacedTab extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(imageUrl, width: 80, height: 80, fit: BoxFit.cover),
+              child: Image.network(enrollment.thumbnail, width: 80, height: 80, fit: BoxFit.cover),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(enrollment.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Text(instructor, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(enrollment.instructor ?? "Instructor", style: const TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: LinearProgressIndicator(
-                          value: progress,
+                          value: enrollment.progress / 100,
                           backgroundColor: Colors.grey.shade200,
                           color: const Color(0xFF0D47A1),
                           minHeight: 6,
@@ -101,7 +141,7 @@ class _SelfPacedTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text('${enrollment.progress}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
@@ -115,7 +155,9 @@ class _SelfPacedTab extends StatelessWidget {
 }
 
 class _CohortClassTab extends StatelessWidget {
-  const _CohortClassTab();
+  final List<Enrollment> enrollments;
+  final VoidCallback onRefresh;
+  const _CohortClassTab({required this.enrollments, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -137,24 +179,31 @@ class _CohortClassTab extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildClassCard(
-                context,
-                className: 'Batch 5: Fullstack Laravel Bootcamp',
-                period: '12 Apr 2026 - 12 Jul 2026',
-                status: 'Aktif',
-              ),
-            ],
+        if (enrollments.isEmpty)
+          const Expanded(child: Center(child: Text('Belum ada kelas yang diikuti.'))),
+        if (enrollments.isNotEmpty)
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: enrollments.length,
+              itemBuilder: (context, index) {
+                final enrollment = enrollments[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildClassCard(
+                    context,
+                    enrollment: enrollment,
+                  ),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
   void _showJoinClassDialog(BuildContext context) {
+    final codeController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -166,6 +215,7 @@ class _CohortClassTab extends StatelessWidget {
             const Text('Masukkan kode kelas dari instruktur Anda.', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 16),
             TextField(
+              controller: codeController,
               decoration: InputDecoration(
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 hintText: 'Contoh: X7Y9ZQ',
@@ -176,9 +226,19 @@ class _CohortClassTab extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => context.pop(), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            onPressed: () {
-              context.pop();
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berhasil bergabung dengan kelas!')));
+            onPressed: () async {
+              try {
+                await context.read<ClassroomRepository>().joinClass(codeController.text);
+                if (context.mounted) {
+                  context.pop();
+                  onRefresh();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berhasil bergabung dengan kelas!')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
             child: const Text('Gabung'),
@@ -188,11 +248,10 @@ class _CohortClassTab extends StatelessWidget {
     );
   }
 
-  Widget _buildClassCard(BuildContext context, {required String className, required String period, required String status}) {
+  Widget _buildClassCard(BuildContext context, {required Enrollment enrollment}) {
     return InkWell(
       onTap: () {
-        // Navigasi ke tugas kelas struktural / Classroom Hub
-        context.push('/assignments');
+        context.push('/classroom/${enrollment.id}');
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -200,7 +259,7 @@ class _CohortClassTab extends StatelessWidget {
           color: const Color(0xFF0D47A1),
           borderRadius: BorderRadius.circular(16),
           image: DecorationImage(
-            image: const NetworkImage('https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop'),
+            image: NetworkImage(enrollment.thumbnail),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.6), BlendMode.darken),
           ),
@@ -214,15 +273,15 @@ class _CohortClassTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                  child: Text(status, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: const Text('Aktif', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 const Icon(Icons.class_outlined, color: Colors.white70),
               ],
             ),
             const SizedBox(height: 32),
-            Text(className, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(enrollment.title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(period, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(enrollment.instructor ?? "Instructor", style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ],
         ),
       ),

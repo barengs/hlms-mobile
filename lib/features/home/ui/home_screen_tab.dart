@@ -1,75 +1,113 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hlms_mobile/core/models/course.dart';
+import 'package:hlms_mobile/core/models/enrollment.dart';
+import 'package:hlms_mobile/features/home/logic/home_bloc/home_bloc.dart';
 
 class HomeScreenTab extends StatelessWidget {
   const HomeScreenTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
-          _buildSearchBar(),
-          const SizedBox(height: 20),
-          _buildCategoryChips(),
-          const SizedBox(height: 32),
-          _buildSectionHeader('Lanjutkan Belajar', onSeeAll: () {}),
-          const SizedBox(height: 20),
-          _buildContinueLearningList(),
-          const SizedBox(height: 32),
-          _buildSectionHeader('Kursus Populer', onSeeAll: () {}),
-          const SizedBox(height: 20),
-          _buildPopularCourses(context),
-          const SizedBox(height: 32),
-        ],
-      ),
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (context, state) {
+        if (state is HomeLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is HomeError) {
+          return Center(child: Text(state.message));
+        }
+
+        if (state is HomeLoaded) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<HomeBloc>().add(HomeDataRequested());
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 24),
+                  _buildSearchBar(),
+                  const SizedBox(height: 20),
+                  _buildCategoryChips(state.categories),
+                  const SizedBox(height: 32),
+                  if (state.continuingCourses.isNotEmpty) ...[
+                    _buildSectionHeader('Lanjutkan Belajar', onSeeAll: () {}),
+                    const SizedBox(height: 20),
+                    _buildContinueLearningList(state.continuingCourses),
+                    const SizedBox(height: 32),
+                  ],
+                  _buildSectionHeader('Kursus Terbaru', onSeeAll: () {}),
+                  const SizedBox(height: 20),
+                  _buildPopularCourses(context, state.latestCourses),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
     );
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 25,
-          backgroundColor: Colors.blue.shade50,
-          backgroundImage: const NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: const TextSpan(
-                  style: TextStyle(fontSize: 22, color: Colors.black),
-                  children: [
-                    TextSpan(text: 'Selamat Datang, '),
-                    TextSpan(
-                      text: 'Fawais',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0D47A1),
-                      ),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        String name = 'User';
+        if (state is AuthAuthenticated) {
+          name = state.user['name'] ?? 'User';
+        }
+        
+        return Row(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: Colors.blue.shade50,
+              backgroundImage: const NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 22, color: Colors.black),
+                      children: [
+                        const TextSpan(text: 'Selamat Datang, '),
+                        TextSpan(
+                          text: name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0D47A1),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Text(
+                    'Siap belajar apa hari ini?',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
               ),
-              const Text(
-                'Siap belajar apa hari ini?',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        Icon(Icons.settings_outlined, color: Colors.grey.shade300, size: 30),
-        const SizedBox(width: 12),
-        Icon(Icons.notifications_outlined, color: Colors.grey.shade300, size: 30),
-      ],
+            ),
+            Icon(Icons.settings_outlined, color: Colors.grey.shade300, size: 30),
+            const SizedBox(width: 12),
+            Icon(Icons.notifications_outlined, color: Colors.grey.shade300, size: 30),
+          ],
+        );
+      },
     );
   }
 
@@ -102,20 +140,19 @@ class HomeScreenTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryChips() {
-    final categories = ['UI/UX', 'Graphics Design', 'Figma', 'Web Dev'];
+  Widget _buildCategoryChips(List<Map<String, dynamic>> categories) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: categories.map((cat) {
-          final isFirst = cat == categories.first;
+          final name = cat['name'] as String;
           return Container(
             margin: const EdgeInsets.only(right: 12),
             child: Chip(
               label: Text(
-                cat,
-                style: TextStyle(
-                  color: isFirst ? Colors.black : Colors.black87,
+                name,
+                style: const TextStyle(
+                  color: Colors.black87,
                   fontSize: 16,
                 ),
               ),
@@ -158,44 +195,17 @@ class HomeScreenTab extends StatelessWidget {
     );
   }
 
-  Widget _buildContinueLearningList() {
-    final courses = [
-      {
-        'title': 'Graphic Design',
-        'instructor': 'Syed Hasnain',
-        'progress': 0.45,
-        'image': 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=400&auto=format&fit=crop',
-      },
-      {
-        'title': 'Wireframing',
-        'instructor': 'Shoaib Hassan',
-        'progress': 0.45,
-        'image': 'https://images.unsplash.com/photo-1545235617-9465d2a55698?q=80&w=400&auto=format&fit=crop',
-      },
-      {
-        'title': 'Website Design',
-        'instructor': 'Dawar Hanif',
-        'progress': 0.45,
-        'image': 'https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=400&auto=format&fit=crop',
-      },
-      {
-        'title': 'Video Editing',
-        'instructor': 'Ammar Ijaz',
-        'progress': 0.45,
-        'image': 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=400&auto=format&fit=crop',
-      },
-    ];
-
+  Widget _buildContinueLearningList(List<Enrollment> enrollments) {
     return SizedBox(
       height: 240,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: courses.length,
+        itemCount: enrollments.length,
         itemBuilder: (context, index) {
-          final course = courses[index];
+          final enrollment = enrollments[index];
           return GestureDetector(
-            onTap: () => context.push('/course/1'),
+            onTap: () => context.push('/course/${enrollment.slug}'),
             child: Container(
               width: 220,
               margin: const EdgeInsets.only(right: 16),
@@ -220,7 +230,7 @@ class HomeScreenTab extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                         image: DecorationImage(
-                          image: NetworkImage(course['image'] as String),
+                          image: NetworkImage(enrollment.thumbnail),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -235,7 +245,7 @@ class HomeScreenTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            course['title'] as String,
+                            enrollment.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -248,18 +258,11 @@ class HomeScreenTab extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Oleh ${course['instructor']}',
+                                  'Oleh ${enrollment.instructor ?? "Instructor"}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
                                 ),
-                              ),
-                              const Row(
-                                children: [
-                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                                  Icon(Icons.star, color: Color(0xFF0D47A1), size: 10),
-                                ],
                               ),
                             ],
                           ),
@@ -268,7 +271,7 @@ class HomeScreenTab extends StatelessWidget {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: LinearProgressIndicator(
-                                  value: course['progress'] as double,
+                                  value: enrollment.progress / 100,
                                   backgroundColor: Colors.grey.shade100,
                                   valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
                                   minHeight: 5,
@@ -278,7 +281,7 @@ class HomeScreenTab extends StatelessWidget {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: Text(
-                                  '${((course['progress'] as double) * 100).toInt()}% Selesai',
+                                  '${enrollment.progress}% Selesai',
                                   style: TextStyle(color: Colors.grey.shade400, fontSize: 9),
                                 ),
                               ),
@@ -297,30 +300,11 @@ class HomeScreenTab extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularCourses(BuildContext context) {
-    final popular = [
-      {
-        'title': 'Mastering Flutter UI',
-        'instructor': 'Alex Smith',
-        'price': 'Rp 250.000',
-        'rating': '4.9',
-        'students': '2.5k',
-        'image': 'https://images.unsplash.com/photo-1551033406-611cf9a28f67?q=80&w=400&auto=format&fit=crop',
-      },
-      {
-        'title': 'Laravel for Beginners',
-        'instructor': 'Jane Doe',
-        'price': 'Rp 150.000',
-        'rating': '4.7',
-        'students': '1.8k',
-        'image': 'https://images.unsplash.com/photo-1599507591144-667d4f3ff3a2?q=80&w=400&auto=format&fit=crop',
-      },
-    ];
-
+  Widget _buildPopularCourses(BuildContext context, List<Course> latestCourses) {
     return Column(
-      children: popular.map((course) {
+      children: latestCourses.map((course) {
         return GestureDetector(
-          onTap: () => context.push('/course/1'),
+          onTap: () => context.push('/course/${course.slug}'),
           child: Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(12),
@@ -344,7 +328,7 @@ class HomeScreenTab extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     image: DecorationImage(
-                      image: NetworkImage(course['image'] as String),
+                      image: NetworkImage(course.thumbnail),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -355,12 +339,14 @@ class HomeScreenTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        course['title'] as String,
+                        course.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Oleh ${course['instructor']}',
+                        'Oleh ${course.instructorName ?? "Instructor"}',
                         style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
@@ -368,7 +354,7 @@ class HomeScreenTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            course['price'] as String,
+                            course.price != null ? 'Rp ${course.price?.toInt()}' : 'Free',
                             style: const TextStyle(
                               color: Color(0xFF0D47A1),
                               fontWeight: FontWeight.bold,
@@ -379,7 +365,7 @@ class HomeScreenTab extends StatelessWidget {
                               const Icon(Icons.star, color: Colors.orange, size: 14),
                               const SizedBox(width: 4),
                               Text(
-                                '${course['rating']} (${course['students']})',
+                                '${course.rating ?? 0} (${course.totalEnrollments ?? 0})',
                                 style: const TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                             ],

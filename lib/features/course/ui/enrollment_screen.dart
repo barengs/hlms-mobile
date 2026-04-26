@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hlms_mobile/features/course/data/course_repository.dart';
+import 'package:hlms_mobile/core/models/course.dart';
 
 class EnrollmentScreen extends StatefulWidget {
   final String courseId;
@@ -12,9 +15,71 @@ class EnrollmentScreen extends StatefulWidget {
 class _EnrollmentScreenState extends State<EnrollmentScreen> {
   int _currentStep = 1;
   String _selectedPaymentMethod = '';
+  Course? _course;
+  Map<String, dynamic>? _cartSummary;
+  bool _isLoading = true;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final repo = context.read<CourseRepository>();
+      final course = await repo.getCourseDetail(widget.courseId);
+      await repo.addToCart(course.id);
+      final cart = await repo.getCart();
+      
+      setState(() {
+        _course = course;
+        _cartSummary = cart;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        context.pop();
+      }
+    }
+  }
+
+  Future<void> _handleNext() async {
+    if (_currentStep == 1) {
+      setState(() => _currentStep = 2);
+    } else if (_currentStep == 2) {
+      if (_selectedPaymentMethod.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih metode pembayaran')));
+        return;
+      }
+      setState(() => _currentStep = 3);
+    } else if (_currentStep == 3) {
+      setState(() => _isProcessing = true);
+      try {
+        await context.read<CourseRepository>().processCheckout();
+        setState(() {
+          _isProcessing = false;
+          _currentStep = 4;
+        });
+      } catch (e) {
+        setState(() => _isProcessing = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        }
+      }
+    } else {
+      context.go('/home');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -23,7 +88,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            if (_currentStep > 1) {
+            if (_currentStep > 1 && _currentStep < 4) {
               setState(() => _currentStep--);
             } else {
               context.pop();
@@ -33,7 +98,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       ),
       body: Column(
         children: [
-          _buildStepper(),
+          if (_currentStep < 4) _buildStepper(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -113,24 +178,32 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       case 2:
         return _buildPaymentStep();
       case 3:
-        return _buildConfirmationStep();
+        return _buildConfirmationSummary();
+      case 4:
+        return _buildSuccessStep();
       default:
         return const SizedBox();
     }
   }
 
   Widget _buildOverviewStep() {
+    if (_course == null) return const SizedBox();
+    
+    final subtotal = _cartSummary?['subtotal'] ?? 0;
+    final discount = _cartSummary?['discount'] ?? 0;
+    final total = _cartSummary?['total'] ?? 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Ringkasan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
         RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 20, color: Colors.black),
+          text: TextSpan(
+            style: const TextStyle(fontSize: 20, color: Colors.black),
             children: [
-              TextSpan(text: 'Nama Kursus : '),
-              TextSpan(text: 'Graphic Design', style: TextStyle(fontWeight: FontWeight.bold)),
+              const TextSpan(text: 'Nama Kursus : '),
+              TextSpan(text: _course!.title, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -145,7 +218,7 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
             children: [
               Row(
                 children: [
-                  _buildIconText(Icons.book, '80+ Materi'),
+                  _buildIconText(Icons.book, 'Materi Lengkap'),
                   const Spacer(),
                   _buildIconText(Icons.workspace_premium, 'Sertifikat'),
                 ],
@@ -153,20 +226,16 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildIconText(Icons.access_time_filled, '8 Minggu'),
+                  _buildIconText(Icons.access_time_filled, 'Akses Selamanya'),
                   const Spacer(),
-                  _buildIconText(Icons.local_offer, 'Diskon 10%'),
+                  _buildIconText(Icons.local_offer, 'Diskon Spesial'),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        _buildDetailRow('Rating Kursus :', Row(
-          children: List.generate(5, (index) => const Icon(Icons.star, color: Color(0xFF003399), size: 20)),
-        )),
-        _buildDetailRow('Waktu Kursus :', const Text('8 Minggu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
-        _buildDetailRow('Trainer Kursus :', const Text('Syed Hasnain', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+        _buildDetailRow('Trainer Kursus :', Text(_course!.instructorName ?? 'Instructor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
         const SizedBox(height: 32),
         
         Container(
@@ -180,9 +249,9 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
             children: [
               const Text('Detail Pembelian', style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 16),
-              _buildPriceRow('Tanggal :', '19/03/2024', 'Harga :', '72\$'),
+              _buildPriceRow('Subtotal :', 'Rp $subtotal', 'Potongan :', 'Rp $discount'),
               const SizedBox(height: 12),
-              _buildPriceRow('Kupon :', 'Diskon 10%', 'Total :', '65\$', isTotal: true),
+              _buildPriceRow('', '', 'Total Pembayaran :', 'Rp $total', isTotal: true),
             ],
           ),
         ),
@@ -219,28 +288,53 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     );
   }
 
-  Widget _buildConfirmationStep() {
+  Widget _buildConfirmationSummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Konfirmasi Pesanan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            children: [
+              _buildPriceRow('Metode Pembayaran', _selectedPaymentMethod, '', ''),
+              const Divider(height: 32),
+              _buildPriceRow('Total yang harus dibayar', 'Rp ${_cartSummary?['total'] ?? 0}', '', '', isTotal: true),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Dengan menekan tombol Bayar Sekarang, Anda menyetujui syarat dan ketentuan yang berlaku.',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuccessStep() {
     return Column(
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 40),
+        const Icon(Icons.check_circle, size: 100, color: Colors.green),
+        const SizedBox(height: 24),
         const Text(
-          'Transaksi Berhasil!',
+          'Pendaftaran Berhasil!',
           style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         const Text(
-          'Selamat! Pendaftaran Anda telah berhasil diproses.',
+          'Selamat! Pendaftaran Anda telah berhasil diproses. Silakan mulai belajar sekarang.',
           style: TextStyle(color: Colors.grey, fontSize: 16),
           textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 40),
-        Center(
-          child: Image.asset(
-            'assets/complate_payment.png',
-            height: 320,
-            fit: BoxFit.contain,
-          ),
         ),
         const SizedBox(height: 40),
       ],
@@ -319,20 +413,20 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: ElevatedButton(
-        onPressed: () {
-          if (_currentStep < 3) {
-            setState(() => _currentStep++);
-          } else {
-            context.go('/home');
-          }
-        },
+        onPressed: _isProcessing ? null : _handleNext,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF003399),
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
         ),
-        child: Text(_currentStep == 3 ? 'Selesai' : 'Lanjutkan', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        child: _isProcessing 
+          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text(
+              _currentStep == 3 ? 'Bayar Sekarang' : (_currentStep == 4 ? 'Mulai Belajar' : 'Lanjutkan'), 
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+            ),
       ),
     );
   }

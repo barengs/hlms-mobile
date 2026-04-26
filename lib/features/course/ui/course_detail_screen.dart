@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hlms_mobile/core/models/course.dart';
+import 'package:hlms_mobile/features/course/data/course_repository.dart';
+import 'package:hlms_mobile/features/course/logic/course_detail_bloc/course_detail_bloc.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final String courseId;
@@ -27,44 +31,65 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Video/Header Section
-            _buildVideoHeader(context),
-            
-            // Tab Bar
-            _buildTabBar(),
-            
-            // Tab Content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildOverviewTab(),
-                  _buildLessonsTab(),
-                  _buildReviewsTab(),
-                ],
+    return BlocProvider(
+      create: (context) => CourseDetailBloc(context.read<CourseRepository>())
+        ..add(CourseDetailRequested(widget.courseId)),
+      child: BlocBuilder<CourseDetailBloc, CourseDetailState>(
+        builder: (context, state) {
+          if (state is CourseDetailLoading) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+
+          if (state is CourseDetailError) {
+            return Scaffold(body: Center(child: Text(state.message)));
+          }
+
+          if (state is CourseDetailLoaded) {
+            final course = state.course;
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    // Top Video/Header Section
+                    _buildVideoHeader(context, course),
+                    
+                    // Tab Bar
+                    _buildTabBar(),
+                    
+                    // Tab Content
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOverviewTab(course),
+                          _buildLessonsTab(),
+                          _buildReviewsTab(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+              bottomNavigationBar: _buildBottomEnrollButton(course),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
       ),
-      bottomNavigationBar: _buildBottomEnrollButton(),
     );
   }
 
-  Widget _buildVideoHeader(BuildContext context) {
+  Widget _buildVideoHeader(BuildContext context, Course course) {
     return Stack(
       children: [
         Container(
           height: 250,
           width: double.infinity,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             image: DecorationImage(
-              image: NetworkImage('https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=600&auto=format&fit=crop'),
+              image: NetworkImage(course.thumbnail),
               fit: BoxFit.cover,
             ),
           ),
@@ -134,7 +159,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildOverviewTab() {
+  Widget _buildOverviewTab(Course course) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -147,38 +172,34 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Graphic Design',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    Text(
+                      course.title,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Oleh Syed Hasnain',
+                      'Oleh ${course.instructorName ?? "Instructor"}',
                       style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
-                    const Row(
-                      children: [
-                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
-                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
-                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
-                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
-                        Icon(Icons.star, color: Color(0xFF003399), size: 18),
-                      ],
+                    Row(
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          Icons.star,
+                          color: index < (course.rating ?? 0).floor() ? const Color(0xFF003399) : Colors.grey.shade300,
+                          size: 18,
+                        );
+                      }),
                     ),
                   ],
                 ),
               ),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '72\$',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                  Text(
-                    'Lorem Ipsum Text',
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    course.price != null ? 'Rp ${course.price?.toInt()}' : 'Free',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                 ],
               ),
@@ -260,20 +281,54 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildLessonsTab() {
-    return ListView(
+  Widget _buildLessonsTab(Course course) {
+    // Note: Course model needs to have sections/lessons if they are in the response
+    // For now, I'll assume they are in course.sections
+    final sections = (course as dynamic).sections as List? ?? [];
+    
+    if (sections.isEmpty) {
+      return const Center(child: Text('Belum ada materi tersedia.'));
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(24),
-      children: [
-        _buildChapterHeader('Bab 1 : Apa itu Graphics Designing?'),
-        _buildLessonItem(Icons.play_circle_filled, 'Lorem ipsum dolor sit amet consectetur.'),
-        _buildLessonItem(Icons.list_alt, 'Lorem ipsum dolor sit amet consectetur.'),
-        _buildLessonItem(Icons.play_circle_filled, 'Lorem ipsum dolor sit amet consectetur.'),
-        _buildLessonItem(Icons.list_alt, 'Lorem ipsum dolor sit amet consectetur.'),
-        const SizedBox(height: 16),
-        _buildChapterHeader('Bab 2 : Apa itu Logo Designing?', isExpanded: false),
-        _buildChapterHeader('Bab 3 : Apa itu Poster Designing?', isExpanded: false),
-        _buildChapterHeader('Bab 4 : Apa itu Picture Editing?', isExpanded: false),
-      ],
+      itemCount: sections.length,
+      itemBuilder: (context, index) {
+        final section = sections[index];
+        final lessons = section['lessons'] as List? ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildChapterHeader(section['title'] ?? 'Section ${index + 1}'),
+            ...lessons.map((lesson) {
+              final lessonAssignments = lesson['assignments'] as List? ?? [];
+              return Column(
+                children: [
+                  _buildLessonItem(
+                    Icons.play_circle_filled, 
+                    lesson['title'] ?? 'Lesson',
+                    onTap: () {
+                      context.push('/lesson/${course.slug}/${lesson['id']}');
+                    },
+                  ),
+                  ...lessonAssignments.map((assignment) {
+                    final isQuiz = assignment['type'] == 'quiz';
+                    return _buildLessonItem(
+                      isQuiz ? Icons.quiz : Icons.assignment,
+                      isQuiz ? 'Kuis: ${assignment['title']}' : 'Tugas: ${assignment['title']}',
+                      color: isQuiz ? Colors.orange : Colors.green,
+                      onTap: () {
+                        context.push(isQuiz ? '/quiz/${assignment['id']}' : '/assignment/upload/${assignment['id']}');
+                      },
+                    );
+                  }),
+                ],
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
     );
   }
 
@@ -295,21 +350,24 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildLessonItem(IconData icon, String title) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF003399), size: 30),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
+  Widget _buildLessonItem(IconData icon, String title, {VoidCallback? onTap, Color? color}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: color ?? const Color(0xFF003399), size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -376,7 +434,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildBottomEnrollButton() {
+  Widget _buildBottomEnrollButton(Course course) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -394,7 +452,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: () => context.push('/course/enroll/${widget.courseId}'),
+            onPressed: () => context.push('/course/enroll/${course.id}'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF003399),
               foregroundColor: Colors.white,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
+import 'package:hlms_mobile/features/profile/data/profile_repository.dart';
 
 class ProfileScreenTab extends StatelessWidget {
   const ProfileScreenTab({super.key});
@@ -70,8 +71,42 @@ class ProfileScreenTab extends StatelessWidget {
                       _buildMenuItem(
                         Icons.delete_forever, 
                         'Hapus Akun', 
-                        () {
-                          // Logic for delete account
+                        () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Hapus Akun'),
+                              content: const Text('Apakah Anda yakin ingin menghapus akun? Tindakan ini tidak dapat dibatalkan.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            try {
+                              await context.read<ProfileRepository>().deleteAccount();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Akun berhasil dihapus')),
+                                );
+                                context.read<AuthBloc>().add(AuthLogoutRequested());
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            }
+                          }
                         }, 
                         isLast: true,
                         color: Colors.red,

@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () => context.push('/forgot-password'),
                       child: const Text(
                         'Lupa Kata Sandi?',
                         style: TextStyle(color: Colors.black45),

@@ -1,8 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class AssignmentListScreen extends StatelessWidget {
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hlms_mobile/features/course/data/course_repository.dart';
+import 'package:intl/intl.dart';
+
+class AssignmentListScreen extends StatefulWidget {
   const AssignmentListScreen({super.key});
+
+  @override
+  State<AssignmentListScreen> createState() => _AssignmentListScreenState();
+}
+
+class _AssignmentListScreenState extends State<AssignmentListScreen> {
+  List<Map<String, dynamic>> _assignments = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+  }
+
+  Future<void> _loadAssignments() async {
+    try {
+      final data = await context.read<CourseRepository>().getAssignments();
+      setState(() {
+        _assignments = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,40 +47,68 @@ class AssignmentListScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildAssignmentCard(
-            context,
-            title: 'Tugas Sesi 2: State Management',
-            course: 'Fullstack Flutter & Laravel 11',
-            deadline: 'Besok, 23:59',
-            status: 'Belum Selesai',
-            statusColor: Colors.orange,
-            isCompleted: false,
-          ),
-          const SizedBox(height: 16),
-          _buildAssignmentCard(
-            context,
-            title: 'Tugas Sesi 1: UI Slicing',
-            course: 'Fullstack Flutter & Laravel 11',
-            deadline: '10 Mei 2026',
-            status: 'Selesai (Dinilai: 95)',
-            statusColor: Colors.green,
-            isCompleted: true,
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _assignments.isEmpty
+              ? const Center(child: Text('Tidak ada tugas saat ini.'))
+              : RefreshIndicator(
+                  onRefresh: _loadAssignments,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _assignments.length,
+                    itemBuilder: (context, index) {
+                      final assignment = _assignments[index];
+                      final submission = assignment['my_submission'];
+                      final status = submission != null ? submission['status'] : 'pending';
+                      final isCompleted = status == 'graded' || status == 'reviewed' || status == 'submitted';
+                      
+                      Color statusColor = Colors.orange;
+                      String statusText = 'Belum Selesai';
+                      
+                      if (status == 'graded' || status == 'reviewed') {
+                        statusColor = Colors.green;
+                        statusText = 'Selesai (Nilai: ${submission['points_awarded']})';
+                      } else if (status == 'submitted') {
+                        statusColor = Colors.blue;
+                        statusText = 'Sudah Dikumpulkan';
+                      }
+
+                      DateTime? dueDate;
+                      if (assignment['due_date'] != null) {
+                        dueDate = DateTime.parse(assignment['due_date']);
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildAssignmentCard(
+                          context,
+                          id: assignment['id'],
+                          title: assignment['title'],
+                          course: assignment['batch']?['courses'] != null && (assignment['batch']['courses'] as List).isNotEmpty 
+                              ? assignment['batch']['courses'][0]['title'] 
+                              : 'General',
+                          deadline: dueDate != null ? DateFormat('dd MMM yyyy, HH:mm').format(dueDate) : 'No Deadline',
+                          status: statusText,
+                          statusColor: statusColor,
+                          isCompleted: isCompleted,
+                          type: assignment['type'] ?? 'assignment',
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 
   Widget _buildAssignmentCard(BuildContext context, {
+    required int id,
     required String title,
     required String course,
     required String deadline,
     required String status,
     required Color statusColor,
     required bool isCompleted,
+    required String type,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -105,7 +166,11 @@ class AssignmentListScreen extends StatelessWidget {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  context.push('/assignment/upload');
+                  if (type == 'quiz') {
+                    context.push('/quiz/$id');
+                  } else {
+                    context.push('/assignment/upload/$id');
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isCompleted ? Colors.grey.shade200 : const Color(0xFF0D47A1),
@@ -115,7 +180,7 @@ class AssignmentListScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(isCompleted ? 'Lihat Detail' : 'Kumpulkan'),
+                child: Text(isCompleted ? 'Lihat Detail' : 'Kerjakan'),
               ),
             ],
           ),

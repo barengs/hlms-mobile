@@ -11,6 +11,8 @@ import 'package:hlms_mobile/features/classroom/ui/assignment_list_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_upload_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/quiz_screen.dart';
 import 'package:hlms_mobile/features/course/ui/enrollment_screen.dart';
+import 'package:hlms_mobile/features/classroom/ui/classroom_screen.dart';
+import 'package:hlms_mobile/features/auth/ui/forgot_password_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -26,6 +28,10 @@ class AppRouter {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/register',
@@ -50,20 +56,37 @@ class AppRouter {
         },
       ),
       GoRoute(
-        path: '/video-player',
-        builder: (context, state) => const VideoPlayerScreen(),
+        path: '/lesson/:slug/:lessonId',
+        builder: (context, state) {
+          final slug = state.pathParameters['slug']!;
+          final lessonId = int.parse(state.pathParameters['lessonId']!);
+          return LessonScreen(slug: slug, lessonId: lessonId);
+        },
       ),
       GoRoute(
         path: '/assignments',
         builder: (context, state) => const AssignmentListScreen(),
       ),
       GoRoute(
-        path: '/assignment/upload',
-        builder: (context, state) => const AssignmentUploadScreen(),
+        path: '/assignment/upload/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return AssignmentUploadScreen(assignmentId: id);
+        },
       ),
       GoRoute(
-        path: '/quiz',
-        builder: (context, state) => const QuizScreen(),
+        path: '/quiz/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return QuizScreen(assignmentId: id);
+        },
+      ),
+      GoRoute(
+        path: '/classroom/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return ClassroomScreen(classId: id);
+        },
       ),
     ],
   );
