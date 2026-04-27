@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'token_interceptor.dart';
 
 class ApiClient {
   late Dio _dio;
@@ -24,15 +25,10 @@ class ApiClient {
           }
           return handler.next(options);
         },
-        onResponse: (response, handler) {
-          return handler.next(response);
-        },
-        onError: (DioException e, handler) {
-          // Add global error handling here if needed
-          return handler.next(e);
-        },
       ),
     );
+    
+    _dio.interceptors.add(TokenInterceptor(_dio));
   }
 
   Dio get dio => _dio;
