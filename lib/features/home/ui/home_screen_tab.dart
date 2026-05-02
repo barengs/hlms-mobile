@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/core/models/course.dart';
 import 'package:hlms_mobile/core/models/enrollment.dart';
 import 'package:hlms_mobile/features/home/logic/home_bloc/home_bloc.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 
 class HomeScreenTab extends StatelessWidget {
   const HomeScreenTab({super.key});
@@ -226,12 +227,16 @@ class HomeScreenTab extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 5,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        image: DecorationImage(
-                          image: NetworkImage(enrollment.thumbnail),
-                          fit: BoxFit.cover,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: Image.network(
+                        enrollment.thumbnail,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey.shade100,
+                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
                         ),
                       ),
                     ),
@@ -322,14 +327,18 @@ class HomeScreenTab extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: NetworkImage(course.thumbnail),
-                      fit: BoxFit.cover,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    course.thumbnail,
+                    fit: BoxFit.cover,
+                    width: 80,
+                    height: 80,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey.shade100,
+                      child: const Icon(Icons.image_not_supported, color: Colors.grey),
                     ),
                   ),
                 ),

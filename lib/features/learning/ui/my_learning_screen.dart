@@ -106,7 +106,7 @@ class _SelfPacedTab extends StatelessWidget {
   Widget _buildSelfPacedCard(BuildContext context, {required Enrollment enrollment}) {
     return InkWell(
       onTap: () {
-        context.push('/course/${enrollment.slug}');
+        context.push('/course/${enrollment.slug}?enrolled=true');
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -118,7 +118,18 @@ class _SelfPacedTab extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(enrollment.thumbnail, width: 80, height: 80, fit: BoxFit.cover),
+              child: Image.network(
+                enrollment.thumbnail, 
+                width: 80, 
+                height: 80, 
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 80,
+                  height: 80,
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -253,36 +264,55 @@ class _CohortClassTab extends StatelessWidget {
       onTap: () {
         context.push('/classroom/${enrollment.id}');
       },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0D47A1),
-          borderRadius: BorderRadius.circular(16),
-          image: DecorationImage(
-            image: NetworkImage(enrollment.thumbnail),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.6), BlendMode.darken),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                  child: const Text('Aktif', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: const BoxDecoration(color: Color(0xFF0D47A1)),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.network(
+                  enrollment.thumbnail,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF0D47A1)),
                 ),
-                const Icon(Icons.class_outlined, color: Colors.white70),
-              ],
-            ),
-            const SizedBox(height: 32),
-            Text(enrollment.title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(enrollment.instructor ?? "Instructor", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          ],
+              ),
+              Positioned.fill(child: Container(color: Colors.black.withOpacity(0.6))),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
+                          child: const Text('Aktif', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                        const Icon(Icons.class_outlined, color: Colors.white70),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      enrollment.title, 
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      enrollment.instructor ?? "Instructor", 
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

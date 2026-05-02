@@ -28,11 +28,22 @@ class CourseRepository {
 
   Future<List<Enrollment>> getMyLearning() async {
     try {
-      final response = await _apiClient.dio.get('/student/my-learning');
+      final response = await _apiClient.dio.get('/student/my-learning', queryParameters: {
+        '_': DateTime.now().millisecondsSinceEpoch,
+      });
 
       if (response.statusCode == 200) {
-        final List data = response.data['data'];
-        return data.map((json) => Enrollment.fromJson(json)).toList();
+        final Map<String, dynamic> dataMap = response.data['data'];
+        final List<dynamic> courses = dataMap['courses'] ?? [];
+        final List<dynamic> batches = dataMap['batches'] ?? [];
+        final List<dynamic> classes = dataMap['classes'] ?? [];
+        
+        final List<Enrollment> allLearning = [];
+        allLearning.addAll(courses.map((j) => Enrollment.fromJson(j)));
+        allLearning.addAll(batches.map((j) => Enrollment.fromJson(j)));
+        allLearning.addAll(classes.map((j) => Enrollment.fromJson(j)));
+        
+        return allLearning;
       } else {
         throw Exception('Gagal memuat kursus saya');
       }
@@ -76,7 +87,7 @@ class CourseRepository {
       final response = await _apiClient.dio.get('/public/courses/$slug');
 
       if (response.statusCode == 200) {
-        return Course.fromJson(response.data['data']);
+        return Course.fromJson(response.data['data'], response.data['meta']);
       } else {
         throw Exception('Gagal memuat detail kursus');
       }
@@ -85,12 +96,27 @@ class CourseRepository {
     }
   }
 
+  Future<Map<String, dynamic>> getLearningDetail(String slug) async {
+    try {
+      final response = await _apiClient.dio.get('/student/courses/$slug/learning');
+      return response.data['data'];
+    } on DioException catch (e) {
+      final msg = e.response?.data['message'] ?? e.message;
+      throw Exception('Gagal memuat silabus (Status: ${e.response?.statusCode}): $msg');
+    } catch (e) {
+      throw Exception('Terjadi kesalahan: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> getLessonDetail(String slug, int lessonId) async {
     try {
       final response = await _apiClient.dio.get('/student/courses/$slug/lessons/$lessonId');
       return response.data['data'];
+    } on DioException catch (e) {
+      final msg = e.response?.data['message'] ?? e.message;
+      throw Exception('Gagal memuat materi (Status: ${e.response?.statusCode}): $msg');
     } catch (e) {
-      throw Exception('Gagal memuat materi pelajaran');
+      throw Exception('Terjadi kesalahan: $e');
     }
   }
 

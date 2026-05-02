@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
@@ -19,6 +20,8 @@ class _LessonScreenState extends State<LessonScreen> {
   Map<String, dynamic>? _lessonData;
   bool _isLoading = true;
 
+  String? _errorMessage;
+  
   @override
   void initState() {
     super.initState();
@@ -27,20 +30,23 @@ class _LessonScreenState extends State<LessonScreen> {
 
   Future<void> _loadLesson() async {
     try {
+      setState(() => _errorMessage = null);
       final data = await context.read<CourseRepository>().getLessonDetail(widget.slug, widget.lessonId);
       setState(() {
         _lessonData = data;
       });
       
-      if (data['video_url'] != null) {
+      if (data['video_url'] != null && data['video_url'].toString().isNotEmpty) {
         await _initializePlayer(data['video_url']);
       } else {
         setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-        setState(() => _isLoading = false);
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isLoading = false;
+        });
       }
     }
   }
@@ -71,7 +77,62 @@ class _LessonScreenState extends State<LessonScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: const Text('Memuat...')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Menyiapkan materi...', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_lessonData == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage ?? 'Gagal memuat materi pelajaran',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Pastikan koneksi internet Anda stabil atau coba lagi nanti.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() => _isLoading = true);
+                    _loadLesson();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('COBA LAGI'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D47A1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(

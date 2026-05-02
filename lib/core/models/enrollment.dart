@@ -23,14 +23,16 @@ class Enrollment {
 
   factory Enrollment.fromJson(Map<String, dynamic> json) {
     return Enrollment(
-      id: json['id'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
       type: json['type'] ?? 'course',
       title: json['title'] ?? json['course_title'] ?? '',
       slug: json['slug'] ?? json['course_slug'],
       thumbnail: json['thumbnail'] ?? '',
       instructor: json['instructor'],
-      progress: json['progress'] ?? 0,
-      enrolledAt: json['enrolled_at'] != null ? DateTime.parse(json['enrolled_at']) : null,
+      progress: (double.tryParse(json['progress'].toString()) ?? 0).toInt(),
+      enrolledAt: (json['enrolled_at'] ?? json['created_at']) != null 
+          ? DateTime.parse(json['enrolled_at'] ?? json['created_at']) 
+          : null,
     );
   }
 }

@@ -6,7 +6,7 @@ import 'package:hlms_mobile/features/auth/ui/login_screen.dart';
 import 'package:hlms_mobile/features/auth/ui/register_screen.dart';
 import 'package:hlms_mobile/features/home/ui/main_navigation_screen.dart';
 import 'package:hlms_mobile/features/course/ui/course_detail_screen.dart';
-import 'package:hlms_mobile/features/learning/ui/video_player_screen.dart';
+import 'package:hlms_mobile/features/learning/ui/lesson_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_list_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_upload_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/quiz_screen.dart';
@@ -45,7 +45,8 @@ class AppRouter {
         path: '/course/:id',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return CourseDetailScreen(courseId: id);
+          final isEnrolled = state.uri.queryParameters['enrolled'] == 'true';
+          return CourseDetailScreen(courseId: id, isEnrolled: isEnrolled);
         },
       ),
       GoRoute(

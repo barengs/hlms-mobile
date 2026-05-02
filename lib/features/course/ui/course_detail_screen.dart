@@ -7,8 +7,9 @@ import 'package:hlms_mobile/features/course/logic/course_detail_bloc/course_deta
 
 class CourseDetailScreen extends StatefulWidget {
   final String courseId;
+  final bool isEnrolled;
 
-  const CourseDetailScreen({super.key, required this.courseId});
+  const CourseDetailScreen({super.key, required this.courseId, this.isEnrolled = false});
 
   @override
   State<CourseDetailScreen> createState() => _CourseDetailScreenState();
@@ -46,6 +47,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
 
           if (state is CourseDetailLoaded) {
             final course = state.course;
+            final isEnrolled = course.isEnrolled || widget.isEnrolled;
             return Scaffold(
               backgroundColor: Colors.white,
               body: SafeArea(
@@ -62,8 +64,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildOverviewTab(course),
-                          _buildLessonsTab(),
+                          _buildOverviewTab(course, isEnrolled),
+                          _buildLessonsTab(course),
                           _buildReviewsTab(),
                         ],
                       ),
@@ -71,7 +73,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   ],
                 ),
               ),
-              bottomNavigationBar: _buildBottomEnrollButton(course),
+              bottomNavigationBar: _buildBottomEnrollButton(course, isEnrolled),
             );
           }
 
@@ -84,24 +86,32 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
   Widget _buildVideoHeader(BuildContext context, Course course) {
     return Stack(
       children: [
-        Container(
+        SizedBox(
           height: 250,
           width: double.infinity,
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(course.thumbnail),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                shape: BoxShape.circle,
+          child: Stack(
+            children: [
+              Image.network(
+                course.thumbnail,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey.shade100,
+                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
               ),
-              child: const Icon(Icons.play_arrow, size: 40, color: Color(0xFF003399)),
-            ),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.play_arrow, size: 40, color: Color(0xFF003399)),
+                ),
+              ),
+            ],
           ),
         ),
         // Back Button
@@ -159,7 +169,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildOverviewTab(Course course) {
+  Widget _buildOverviewTab(Course course, bool isEnrolled) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -194,27 +204,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    course.price != null ? 'Rp ${course.price?.toInt()}' : 'Free',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                ],
-              ),
+              if (!isEnrolled)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      course.price != null ? 'Rp ${course.price?.toInt()}' : 'Free',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+                    ),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 24),
           RichText(
             text: TextSpan(
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 14, height: 1.5),
-              children: const [
-                TextSpan(text: 'Lorem ipsum dolor sit amet consectetur. Nec eget accumsan molestie proin. Integer rhoncus vitae nisi natoque ac mus tellus scelerisque gravida. Consectetur aliquet sit at diam. Augue eu mauris suspendisse adipiscing nibh. Nibh lorem id eu suspendisse nulla leo hendrerit. Erat tortor commodo quam fames et molestie. '),
-                TextSpan(
-                  text: 'Baca Selengkapnya',
-                  style: TextStyle(color: Color(0xFF003399), fontWeight: FontWeight.bold),
-                ),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14, height: 1.5),
+              children: [
+                TextSpan(text: course.description ?? 'Belum ada deskripsi untuk kursus ini.'),
+                if (course.description != null && course.description!.length > 200)
+                  const TextSpan(
+                    text: '... Baca Selengkapnya',
+                    style: TextStyle(color: Color(0xFF003399), fontWeight: FontWeight.bold),
+                  ),
               ],
             ),
           ),
@@ -301,12 +313,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
           children: [
             _buildChapterHeader(section['title'] ?? 'Section ${index + 1}'),
             ...lessons.map((lesson) {
+              final isCompleted = lesson['is_completed'] == true;
               final lessonAssignments = lesson['assignments'] as List? ?? [];
               return Column(
                 children: [
                   _buildLessonItem(
-                    Icons.play_circle_filled, 
+                    isCompleted ? Icons.check_circle : Icons.play_circle_filled, 
                     lesson['title'] ?? 'Lesson',
+                    color: isCompleted ? Colors.green : const Color(0xFF003399),
                     onTap: () {
                       context.push('/lesson/${course.slug}/${lesson['id']}');
                     },
@@ -434,7 +448,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildBottomEnrollButton(Course course) {
+  Widget _buildBottomEnrollButton(Course course, bool isEnrolled) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -452,7 +466,40 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: () => context.push('/course/enroll/${course.id}'),
+            onPressed: () {
+              if (isEnrolled) {
+                // Find first uncompleted lesson to continue
+                final sections = (course as dynamic).sections as List? ?? [];
+                Map<String, dynamic>? targetLesson;
+                
+                for (var section in sections) {
+                  final lessons = section['lessons'] as List? ?? [];
+                  for (var lesson in lessons) {
+                    if (lesson['is_completed'] == false) {
+                      targetLesson = lesson;
+                      break;
+                    }
+                  }
+                  if (targetLesson != null) break;
+                }
+                
+                // Fallback to first lesson if none found
+                if (targetLesson == null && sections.isNotEmpty) {
+                  final lessons = sections[0]['lessons'] as List? ?? [];
+                  if (lessons.isNotEmpty) targetLesson = lessons[0];
+                }
+
+                if (targetLesson != null) {
+                  context.push('/lesson/${course.slug}/${targetLesson['id']}');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Belum ada materi tersedia untuk kursus ini.'))
+                  );
+                }
+              } else {
+                context.push('/course/enroll/${course.id}');
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF003399),
               foregroundColor: Colors.white,
@@ -461,9 +508,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
               ),
               elevation: 0,
             ),
-            child: const Text(
-              'DAFTAR SEKARANG',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            child: Text(
+              isEnrolled ? 'LANJUTKAN BELAJAR' : 'DAFTAR SEKARANG',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
         ),
