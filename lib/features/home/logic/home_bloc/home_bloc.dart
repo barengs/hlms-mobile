@@ -24,11 +24,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         _courseRepository.getLatestCourses(),
         _courseRepository.getMyLearning(),
         _courseRepository.getCategories(),
+        _courseRepository.getRecommendations(),
       ]);
+
+      final allLearning = results[1] as List<Enrollment>;
+      final myCourses = allLearning.where((e) => e.type == 'course').toList();
+      final myClasses = allLearning.where((e) => e.type != 'course').toList();
 
       emit(HomeLoaded(
         latestCourses: results[0] as List<Course>,
-        continuingCourses: results[1] as List<Enrollment>,
+        continuingCourses: myCourses,
+        myClasses: myClasses,
+        recommendations: results[3] as List<Course>,
         categories: results[2] as List<Map<String, dynamic>>,
       ));
     } catch (e) {

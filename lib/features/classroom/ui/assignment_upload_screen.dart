@@ -12,34 +12,61 @@ class AssignmentUploadScreen extends StatefulWidget {
   State<AssignmentUploadScreen> createState() => _AssignmentUploadScreenState();
 }
 
-class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
+class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
+    with TickerProviderStateMixin {
   String? _selectedFileName;
   String? _selectedFilePath;
   final _contentController = TextEditingController();
   Map<String, dynamic>? _assignmentData;
   bool _isLoading = true;
   bool _isSubmitting = false;
+  String? _submitMessage;
+  Map<String, dynamic>? _submitMeta;
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _pulseAnimation =
+        Tween<double>(begin: 0.7, end: 1.0).animate(_pulseController);
     _loadAssignment();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _contentController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAssignment() async {
     try {
-      final data = await context.read<CourseRepository>().getAssignmentDetail(widget.assignmentId);
+      final data = await context
+          .read<CourseRepository>()
+          .getAssignmentDetail(widget.assignmentId);
       setState(() {
         _assignmentData = data;
         _isLoading = false;
-        // If already submitted, pre-fill text
         if (data['my_submission'] != null) {
-          _contentController.text = data['my_submission']['content'] ?? '';
+          _contentController.text =
+              data['my_submission']['content'] ?? '';
+          // Restore submission metadata if already submitted
+          _submitMeta = {
+            'submission_status': data['my_submission']['status'],
+            'ai_status': data['my_submission']['ai_status'] ?? 'not_applicable',
+          };
         }
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
         context.pop();
       }
     }
@@ -67,25 +94,80 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitMessage = null;
+      _submitMeta = null;
+    });
+
     try {
-      await context.read<CourseRepository>().submitAssignment(
-        assignmentId: widget.assignmentId,
-        content: _contentController.text,
-        filePath: _selectedFilePath,
-      );
+      final result = await context.read<CourseRepository>().submitAssignment(
+            assignmentId: widget.assignmentId,
+            content: _contentController.text,
+            filePath: _selectedFilePath,
+          );
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tugas berhasil dikumpulkan!')),
-        );
-        context.pop();
+        setState(() {
+          _isSubmitting = false;
+          _submitMessage = result['message'] as String?;
+          _submitMeta = result['meta'] as Map<String, dynamic>?;
+          // Update assignment data with new submission from result
+          if (result['data'] != null) {
+            _assignmentData = {
+              ..._assignmentData ?? {},
+              'my_submission': result['data'],
+            };
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
+  }
+
+  /// Returns icon and color for the AI grading status.
+  (IconData, Color, String) _aiStatusInfo(String? aiStatus) {
+    return switch (aiStatus) {
+      'completed' => (
+          Icons.auto_awesome,
+          const Color(0xFF00897B),
+          'Evaluasi AI Selesai'
+        ),
+      'processing' => (
+          Icons.hourglass_top_rounded,
+          const Color(0xFF1E88E5),
+          'AI sedang mengevaluasi...'
+        ),
+      'failed' => (
+          Icons.error_outline,
+          const Color(0xFFE53935),
+          'Evaluasi AI gagal'
+        ),
+      _ => (Icons.pending_outlined, const Color(0xFF757575), 'Menunggu penilaian'),
+    };
+  }
+
+  Color _submissionStatusColor(String? status) {
+    return switch (status) {
+      'graded' || 'reviewed' => const Color(0xFF00897B),
+      'submitted' || 'late' => const Color(0xFF1E88E5),
+      _ => const Color(0xFF757575),
+    };
+  }
+
+  String _submissionStatusLabel(String? status) {
+    return switch (status) {
+      'graded' => 'Dinilai',
+      'reviewed' => 'Ditinjau',
+      'submitted' => 'Terkumpul',
+      'late' => 'Terlambat',
+      _ => 'Belum dikumpulkan',
+    };
   }
 
   @override
@@ -95,8 +177,10 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
     }
 
     final submission = _assignmentData?['my_submission'];
-    final status = submission?['status'] ?? 'pending';
-    final isGraded = status == 'graded' || status == 'reviewed';
+    final submissionStatus = (_submitMeta?['submission_status'] ?? submission?['status']) as String?;
+    final aiStatus = (_submitMeta?['ai_status'] ?? submission?['ai_status']) as String?;
+    final isGraded = submissionStatus == 'graded' || submissionStatus == 'reviewed';
+    final hasSubmitted = submission != null || _submitMeta != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -104,23 +188,56 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          if (hasSubmitted)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Chip(
+                label: Text(
+                  _submissionStatusLabel(submissionStatus),
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                ),
+                backgroundColor: _submissionStatusColor(submissionStatus),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Assignment Title & Description
             Text(
               _assignmentData?['title'] ?? 'Tugas',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
               _assignmentData?['description'] ?? '',
               style: const TextStyle(color: Colors.black54, height: 1.5),
             ),
-            if (isGraded) ...[
+
+            // --- SUBMISSION STATUS BANNER ---
+            if (_submitMessage != null || hasSubmitted) ...[
               const SizedBox(height: 24),
+              _SubmissionStatusBanner(
+                message: _submitMessage,
+                aiStatus: aiStatus,
+                submissionStatus: submissionStatus,
+                aiStatusInfo: _aiStatusInfo(aiStatus),
+                pulseAnimation: _pulseAnimation,
+                aiScore: submission?['ai_score'],
+                aiFeedback: submission?['ai_feedback'],
+                maxPoints: _assignmentData?['max_points'],
+              ),
+            ],
+
+            // --- GRADED RESULT ---
+            if (isGraded && submission?['points_awarded'] != null) ...[
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -134,45 +251,66 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Tugas Selesai & Dinilai: ${submission['points_awarded']} / ${_assignmentData?['max_points']}',
-                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        'Nilai: ${submission['points_awarded']} / ${_assignmentData?['max_points']}',
+                        style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
               ),
             ],
+
             const SizedBox(height: 32),
-            const Text('Teks Jawaban (Opsional)', style: TextStyle(fontWeight: FontWeight.bold)),
+
+            // --- TEXT ANSWER ---
+            const Text('Teks Jawaban (Opsional)',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: _contentController,
               maxLines: 5,
-              enabled: !isGraded,
+              enabled: !isGraded && !_isSubmitting,
               decoration: InputDecoration(
                 hintText: 'Tuliskan jawaban Anda di sini...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
+
             const SizedBox(height: 32),
-            const Text('Lampiran File', style: TextStyle(fontWeight: FontWeight.bold)),
+
+            // --- FILE ATTACHMENT ---
+            const Text('Lampiran File',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                border: Border.all(
+                    color: Colors.grey.shade300,
+                    style: BorderStyle.solid),
                 borderRadius: BorderRadius.circular(16),
                 color: Colors.grey.shade50,
               ),
               child: Column(
                 children: [
-                  Icon(Icons.cloud_upload_outlined, size: 64, color: isGraded ? Colors.grey : const Color(0xFF0D47A1)),
+                  Icon(Icons.cloud_upload_outlined,
+                      size: 64,
+                      color: isGraded
+                          ? Colors.grey
+                          : const Color(0xFF0D47A1)),
                   const SizedBox(height: 16),
-                  Text(_selectedFileName ?? (submission?['files'] != null ? 'File sudah terunggah' : 'Pilih file tugas')),
+                  Text(_selectedFileName ??
+                      (submission?['files'] != null &&
+                              (submission!['files'] as List).isNotEmpty
+                          ? 'File sudah terunggah ✓'
+                          : 'Pilih file tugas')),
                   if (!isGraded) ...[
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
-                      onPressed: _pickFile,
+                      onPressed: _isSubmitting ? null : _pickFile,
                       icon: const Icon(Icons.attach_file),
                       label: const Text('Pilih File'),
                     ),
@@ -180,23 +318,228 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 48),
+
+            // --- SUBMIT BUTTON ---
             if (!isGraded)
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D47A1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: _isSubmitting 
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Kirim Tugas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _isSubmitting
+                    ? _SubmittingIndicator()
+                    : ElevatedButton(
+                        key: const ValueKey('submit_button'),
+                        onPressed: _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          foregroundColor: Colors.white,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          hasSubmitted
+                              ? 'Perbarui Pengumpulan'
+                              : 'Kirim Tugas',
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Submission Status Banner Widget
+// ---------------------------------------------------------------------------
+class _SubmissionStatusBanner extends StatelessWidget {
+  final String? message;
+  final String? aiStatus;
+  final String? submissionStatus;
+  final (IconData, Color, String) aiStatusInfo;
+  final Animation<double> pulseAnimation;
+  final dynamic aiScore;
+  final dynamic aiFeedback;
+  final dynamic maxPoints;
+
+  const _SubmissionStatusBanner({
+    required this.message,
+    required this.aiStatus,
+    required this.submissionStatus,
+    required this.aiStatusInfo,
+    required this.pulseAnimation,
+    this.aiScore,
+    this.aiFeedback,
+    this.maxPoints,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, color, statusLabel) = aiStatusInfo;
+    final isProcessing = aiStatus == 'processing';
+    final isCompleted = aiStatus == 'completed';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Banner Header
+          Row(
+            children: [
+              // Pulse animation for processing state
+              if (isProcessing)
+                AnimatedBuilder(
+                  animation: pulseAnimation,
+                  builder: (_, child) => Opacity(
+                    opacity: pulseAnimation.value,
+                    child: child,
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                )
+              else
+                Icon(icon, color: color, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (message != null)
+                      Text(
+                        message!,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    if (aiStatus != null &&
+                        aiStatus != 'not_applicable') ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                                color: color,
+                                fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // AI Score & Feedback
+          if (isCompleted && aiScore != null) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.stars_rounded,
+                    color: Color(0xFF00897B), size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'Skor AI: $aiScore / $maxPoints',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00897B),
+                  ),
+                ),
+              ],
+            ),
+            if (aiFeedback != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                aiFeedback.toString(),
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    height: 1.5),
+              ),
+            ],
+          ],
+
+          // Processing explanation
+          if (isProcessing) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(
+              backgroundColor: Colors.transparent,
+              color: Color(0xFF1E88E5),
+              minHeight: 2,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tunggu sebentar ya, AI sedang membaca dan menilai tugasmu secara otomatis.',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Submitting Indicator Widget
+// ---------------------------------------------------------------------------
+class _SubmittingIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('submitting_indicator'),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D47A1).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF0D47A1).withOpacity(0.3)),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              color: Color(0xFF0D47A1),
+              strokeWidth: 2.5,
+            ),
+          ),
+          SizedBox(width: 14),
+          Text(
+            'Sedang mengupload & mengirim tugas...',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0D47A1),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -23,7 +23,14 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         final authState = context.read<AuthBloc>().state;
         if (authState is AuthAuthenticated) {
-          context.go('/home');
+          final user = authState.user;
+          final onboardingCompleted = user['onboarding_completed'] == true || user['onboarding_completed'] == 1;
+          
+          if (onboardingCompleted) {
+            context.go('/home');
+          } else {
+            context.go('/onboarding');
+          }
         } else {
           context.go('/login');
         }

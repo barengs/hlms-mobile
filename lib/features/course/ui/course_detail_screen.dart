@@ -479,6 +479,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                       targetLesson = lesson;
                       break;
                     }
+                    
+                    final assignments = lesson['assignments'] as List? ?? [];
+                    for (var assignment in assignments) {
+                      if (assignment['is_completed'] == false) {
+                        targetLesson = assignment;
+                        break;
+                      }
+                    }
+                    if (targetLesson != null) break;
                   }
                   if (targetLesson != null) break;
                 }
@@ -490,7 +499,16 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                 }
 
                 if (targetLesson != null) {
-                  context.push('/lesson/${course.slug}/${targetLesson['id']}');
+                  final isQuiz = targetLesson['type'] == 'quiz';
+                  final isAssignment = targetLesson['type'] == 'assignment';
+                  
+                  if (isQuiz) {
+                    context.push('/quiz/${targetLesson['id']}');
+                  } else if (isAssignment) {
+                    context.push('/assignment/upload/${targetLesson['id']}');
+                  } else {
+                    context.push('/lesson/${course.slug}/${targetLesson['id']}');
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Belum ada materi tersedia untuk kursus ini.'))

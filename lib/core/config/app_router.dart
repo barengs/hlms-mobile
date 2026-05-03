@@ -13,6 +13,7 @@ import 'package:hlms_mobile/features/classroom/ui/quiz_screen.dart';
 import 'package:hlms_mobile/features/course/ui/enrollment_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/classroom_screen.dart';
 import 'package:hlms_mobile/features/auth/ui/forgot_password_screen.dart';
+import 'package:hlms_mobile/features/onboarding/ui/onboarding_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -40,6 +41,10 @@ class AppRouter {
       GoRoute(
         path: '/home',
         builder: (context, state) => const MainNavigationScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/course/:id',

@@ -54,4 +54,13 @@ class ClassroomRepository {
       throw Exception(e.response?.data['message'] ?? 'Gagal bergabung dengan kelas');
     }
   }
+
+  Future<bool> toggleActivityComplete(int activityId) async {
+    try {
+      final response = await _apiClient.dio.post('/classes/activities/$activityId/toggle-complete');
+      return response.data['data']['completed'] == true;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal memperbarui status');
+    }
+  }
 }

@@ -5,6 +5,7 @@ import 'package:hlms_mobile/core/models/course.dart';
 import 'package:hlms_mobile/core/models/enrollment.dart';
 import 'package:hlms_mobile/features/home/logic/home_bloc/home_bloc.dart';
 import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
+import 'package:hlms_mobile/features/classroom/data/classroom_repository.dart';
 
 class HomeScreenTab extends StatelessWidget {
   const HomeScreenTab({super.key});
@@ -41,9 +42,21 @@ class HomeScreenTab extends StatelessWidget {
                   _buildCategoryChips(state.categories),
                   const SizedBox(height: 32),
                   if (state.continuingCourses.isNotEmpty) ...[
-                    _buildSectionHeader('Lanjutkan Belajar', onSeeAll: () {}),
+                    _buildSectionHeader('Kursus Mandiri', onSeeAll: () {}),
                     const SizedBox(height: 20),
                     _buildContinueLearningList(state.continuingCourses),
+                    const SizedBox(height: 32),
+                  ],
+                  if (state.myClasses.isNotEmpty) ...[
+                    _buildSectionHeader('Kelas & Pelatihan', onSeeAll: () {}),
+                    const SizedBox(height: 20),
+                    _buildClassLearningList(state.myClasses),
+                    const SizedBox(height: 32),
+                  ],
+                  if (state.recommendations.isNotEmpty) ...[
+                    _buildSectionHeader('Rekomendasi Untukmu', onSeeAll: () {}),
+                    const SizedBox(height: 20),
+                    _buildPopularCourses(context, state.recommendations),
                     const SizedBox(height: 32),
                   ],
                   _buildSectionHeader('Kursus Terbaru', onSeeAll: () {}),
@@ -113,30 +126,110 @@ class HomeScreenTab extends StatelessWidget {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(50),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: Colors.grey.shade100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const TextField(
+              decoration: InputDecoration(
+                hintText: 'Cari materi...',
+                hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
+                prefixIcon: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Icon(Icons.search, color: Colors.grey, size: 24),
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        _buildJoinClassButton(),
+      ],
+    );
+  }
+
+  Widget _buildJoinClassButton() {
+    return Builder(
+      builder: (context) {
+        return GestureDetector(
+          onTap: () => _showJoinClassDialog(context),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D47A1),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0D47A1).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.add_box_outlined, color: Colors.white, size: 28),
+          ),
+        );
+      }
+    );
+  }
+
+  void _showJoinClassDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ikut Kelas'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Masukkan Kode Kelas',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final code = controller.text.trim();
+              if (code.isNotEmpty) {
+                try {
+                  await context.read<ClassroomRepository>().joinClass(code);
+                  if (context.mounted) {
+                    Navigator.pop(dialogContext);
+                    context.read<HomeBloc>().add(HomeDataRequested());
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Berhasil bergabung dengan kelas!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString())),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Gabung'),
           ),
         ],
-      ),
-      child: const TextField(
-        decoration: InputDecoration(
-          hintText: 'Cari materi...',
-          hintStyle: TextStyle(color: Colors.grey, fontSize: 18),
-          prefixIcon: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Icon(Icons.search, color: Colors.grey, size: 30),
-          ),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 18),
-        ),
       ),
     );
   }
@@ -212,12 +305,12 @@ class HomeScreenTab extends StatelessWidget {
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
                 border: Border.all(color: Colors.grey.shade100),
@@ -228,7 +321,7 @@ class HomeScreenTab extends StatelessWidget {
                   Expanded(
                     flex: 5,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                       child: Image.network(
                         enrollment.thumbnail,
                         fit: BoxFit.cover,
@@ -251,26 +344,29 @@ class HomeScreenTab extends StatelessWidget {
                         children: [
                           Text(
                             enrollment.title,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
                           Row(
                             children: [
+                              const Icon(Icons.person_outline, size: 12, color: Colors.grey),
+                              const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  'Oleh ${enrollment.instructor ?? "Instructor"}',
+                                  enrollment.instructor ?? "Instructor",
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
                           Column(
                             children: [
                               ClipRRect(
@@ -279,21 +375,128 @@ class HomeScreenTab extends StatelessWidget {
                                   value: enrollment.progress / 100,
                                   backgroundColor: Colors.grey.shade100,
                                   valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
-                                  minHeight: 5,
+                                  minHeight: 6,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  '${enrollment.progress}% Selesai',
-                                  style: TextStyle(color: Colors.grey.shade400, fontSize: 9),
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Progres',
+                                    style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                                  ),
+                                  Text(
+                                    '${enrollment.progress}%',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF0D47A1)),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildClassLearningList(List<Enrollment> enrollments) {
+    return SizedBox(
+      height: 180,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: enrollments.length,
+        itemBuilder: (context, index) {
+          final enrollment = enrollments[index];
+          return GestureDetector(
+            onTap: () => context.push('/classroom/${enrollment.id}'),
+            child: Container(
+              width: 280,
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0D47A1).withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Icon(
+                      Icons.school_outlined,
+                      size: 100,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'KELAS AKTIF',
+                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              enrollment.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today, color: Colors.white70, size: 12),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Enrolled at ${enrollment.enrolledAt != null ? enrollment.enrolledAt!.toString().substring(0, 10) : "-"}',
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],

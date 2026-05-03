@@ -9,6 +9,7 @@ import 'package:hlms_mobile/features/course/data/course_repository.dart';
 import 'package:hlms_mobile/features/home/logic/home_bloc/home_bloc.dart';
 import 'package:hlms_mobile/features/profile/data/profile_repository.dart';
 import 'package:hlms_mobile/features/classroom/data/classroom_repository.dart';
+import 'package:hlms_mobile/features/onboarding/data/onboarding_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,9 @@ class MolangApp extends StatelessWidget {
         ),
         RepositoryProvider(
           create: (context) => ClassroomRepository(context.read<ApiClient>()),
+        ),
+        RepositoryProvider(
+          create: (context) => OnboardingRepository(context.read<ApiClient>()),
         ),
       ],
       child: MultiBlocProvider(

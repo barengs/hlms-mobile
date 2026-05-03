@@ -137,7 +137,7 @@ class CourseRepository {
     }
   }
 
-  Future<void> submitAssignment({
+  Future<Map<String, dynamic>> submitAssignment({
     required int assignmentId,
     String? content,
     Map<String, dynamic>? answers,
@@ -145,9 +145,10 @@ class CourseRepository {
   }) async {
     try {
       FormData formData = FormData();
-      if (content != null) formData.fields.add(MapEntry('content', content));
+      if (content != null && content.isNotEmpty) {
+        formData.fields.add(MapEntry('content', content));
+      }
       if (answers != null) {
-        // Answers are sent as a map
         answers.forEach((key, value) {
           formData.fields.add(MapEntry('answers[$key]', value.toString()));
         });
@@ -159,8 +160,19 @@ class CourseRepository {
         ));
       }
 
-      final response = await _apiClient.dio.post('/student/assignments/$assignmentId/submit', data: formData);
-      if (response.statusCode != 200) {
+      final response = await _apiClient.dio.post(
+        '/student/assignments/$assignmentId/submit',
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        // Return the full response so the UI can show message + meta
+        return {
+          'message': response.data['message'] ?? 'Tugas berhasil dikumpulkan!',
+          'data': response.data['data'],
+          'meta': response.data['meta'] ?? {},
+        };
+      } else {
         throw Exception(response.data['message'] ?? 'Gagal mengumpulkan tugas');
       }
     } on DioException catch (e) {
@@ -203,6 +215,20 @@ class CourseRepository {
       return response.data['data'];
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memproses checkout');
+    }
+  }
+
+  Future<List<Course>> getRecommendations() async {
+    try {
+      final response = await _apiClient.dio.get('/student/recommendations');
+      if (response.statusCode == 200) {
+        final List data = response.data['data'];
+        return data.map((json) => Course.fromJson(json)).toList();
+      } else {
+        throw Exception('Gagal memuat rekomendasi');
+      }
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal memuat rekomendasi');
     }
   }
 }

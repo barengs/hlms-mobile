@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
@@ -158,10 +159,7 @@ class _LessonScreenState extends State<LessonScreen> {
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    _lessonData?['content'] ?? 'Tidak ada deskripsi teks.',
-                    style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
-                  ),
+                  _buildContentBody(_lessonData?['content']),
                   const SizedBox(height: 40),
                   
                   // Next Button
@@ -217,6 +215,90 @@ class _LessonScreenState extends State<LessonScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContentBody(dynamic content) {
+    if (content == null || content.toString().isEmpty) {
+      return const Text('Tidak ada deskripsi teks.', style: TextStyle(fontSize: 16));
+    }
+
+    // Try to parse as JSON if it looks like JSON
+    final contentStr = content.toString();
+    if (contentStr.trim().startsWith('{') || contentStr.trim().startsWith('[')) {
+      try {
+        final decoded = jsonDecode(contentStr);
+        if (decoded is Map<String, dynamic> && decoded.containsKey('questions')) {
+          return _buildQuizTeaser(decoded);
+        }
+      } catch (_) {
+        // Not valid JSON or not a quiz, fall back to text
+      }
+    }
+
+    return Text(
+      contentStr,
+      style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
+    );
+  }
+
+  Widget _buildQuizTeaser(Map<String, dynamic> quiz) {
+    final questions = quiz['questions'] as List? ?? [];
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.quiz, color: Colors.orange),
+              const SizedBox(width: 12),
+              const Text(
+                'Kuis Tersedia',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.orange),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            quiz['description'] ?? 'Uji pemahaman Anda mengenai materi ini.',
+            style: const TextStyle(color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${questions.length} Pertanyaan • Batas Waktu: ${quiz['timeLimit'] ?? "-"} Menit',
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // We need the assignment ID. If it's not in the JSON, we might have a problem.
+              // But usually in this system, the lesson ID is used or there's a reference.
+              // For now, let's try to find an ID in the JSON.
+              final id = quiz['id'];
+              if (id != null) {
+                 // Navigation to quiz screen
+                 // However, we need a numeric ID for the route.
+                 // If the ID in JSON is a string like "quiz-3-2", we might need to handle it.
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Silakan buka kuis ini melalui daftar materi.')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('KERJAKAN KUIS'),
+          ),
+        ],
       ),
     );
   }
