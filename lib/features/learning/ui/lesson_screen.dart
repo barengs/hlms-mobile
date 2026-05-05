@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,6 +19,7 @@ class LessonScreen extends StatefulWidget {
 class _LessonScreenState extends State<LessonScreen> {
   late VideoPlayerController _videoPlayerController;
   ChewieController? _chewieController;
+  YoutubePlayerController? _youtubeController;
   Map<String, dynamic>? _lessonData;
   bool _isLoading = true;
 
@@ -53,25 +55,41 @@ class _LessonScreenState extends State<LessonScreen> {
   }
 
   Future<void> _initializePlayer(String videoUrl) async {
-    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
-    await _videoPlayerController.initialize();
+    final youtubeId = YoutubePlayer.convertUrlToId(videoUrl);
     
-    _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
-      autoPlay: true,
-      looping: false,
-      allowFullScreen: true,
-      allowPlaybackSpeedChanging: true,
-      aspectRatio: _videoPlayerController.value.aspectRatio,
-    );
+    if (youtubeId != null) {
+      _youtubeController = YoutubePlayerController(
+        initialVideoId: youtubeId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          mute: false,
+        ),
+      );
+      setState(() => _isLoading = false);
+    } else {
+      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      await _videoPlayerController.initialize();
+      
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        autoPlay: true,
+        looping: false,
+        allowFullScreen: true,
+        allowPlaybackSpeedChanging: true,
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+      );
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
-    _chewieController?.dispose();
+    if (_chewieController != null) {
+      _videoPlayerController.dispose();
+      _chewieController?.dispose();
+    }
+    _youtubeController?.dispose();
     super.dispose();
   }
 
@@ -144,7 +162,13 @@ class _LessonScreenState extends State<LessonScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_chewieController != null)
+            if (_youtubeController != null)
+              YoutubePlayer(
+                controller: _youtubeController!,
+                showVideoProgressIndicator: true,
+                progressIndicatorColor: Colors.blueAccent,
+              )
+            else if (_chewieController != null)
               AspectRatio(
                 aspectRatio: _videoPlayerController.value.aspectRatio,
                 child: Chewie(controller: _chewieController!),
@@ -278,18 +302,15 @@ class _LessonScreenState extends State<LessonScreen> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              // We need the assignment ID. If it's not in the JSON, we might have a problem.
-              // But usually in this system, the lesson ID is used or there's a reference.
-              // For now, let's try to find an ID in the JSON.
-              final id = quiz['id'];
+              // Quiz assignment ID is typically linked via lesson or in the content JSON
+              final id = quiz['id'] ?? _lessonData?['assignment_id'];
               if (id != null) {
-                 // Navigation to quiz screen
-                 // However, we need a numeric ID for the route.
-                 // If the ID in JSON is a string like "quiz-3-2", we might need to handle it.
+                 context.push('/quiz/$id');
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ID Kuis tidak ditemukan.')),
+                );
               }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Silakan buka kuis ini melalui daftar materi.')),
-              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,

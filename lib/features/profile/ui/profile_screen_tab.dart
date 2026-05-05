@@ -115,25 +115,60 @@ class ProfileScreenTab extends StatelessWidget {
                   ),
                 ),
                 
-                // Avatar
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop'),
-                      fit: BoxFit.cover,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
+                // Avatar & User Info
+                Column(
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        image: const DecorationImage(
+                          image: NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
+                          fit: BoxFit.cover,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+                    BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        String name = 'User';
+                        String email = '';
+                        if (state is AuthAuthenticated) {
+                          name = state.user['name'] ?? 'User';
+                          email = state.user['email'] ?? '';
+                        }
+                        return Column(
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 20, 
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            if (email.isNotEmpty)
+                              Text(
+                                email,
+                                style: const TextStyle(
+                                  fontSize: 14, 
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

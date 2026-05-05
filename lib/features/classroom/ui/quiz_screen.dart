@@ -107,7 +107,22 @@ class _QuizScreenState extends State<QuizScreen> {
     }
 
     final currentQ = _questions[_currentQuestionIndex];
-    final options = currentQ['options'] as Map<String, dynamic>;
+    final optionsRaw = currentQ['options'];
+    
+    // Handle both Map and List formats for options
+    List<MapEntry<String, String>> optionsList = [];
+    if (optionsRaw is Map) {
+      optionsList = optionsRaw.entries.map((e) => MapEntry(e.key.toString(), e.value.toString())).toList();
+    } else if (optionsRaw is List) {
+      optionsList = optionsRaw.map((opt) {
+        if (opt is Map) {
+          final id = (opt['id'] ?? opt['value'] ?? '').toString();
+          final text = (opt['text'] ?? opt['label'] ?? '').toString();
+          return MapEntry(id, text);
+        }
+        return MapEntry(opt.toString(), opt.toString());
+      }).toList();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -136,7 +151,7 @@ class _QuizScreenState extends State<QuizScreen> {
             const SizedBox(height: 32),
             Expanded(
               child: ListView(
-                children: options.entries.map((entry) {
+                children: optionsList.map((entry) {
                   final isSelected = _selectedAnswer == entry.key;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -164,7 +179,7 @@ class _QuizScreenState extends State<QuizScreen> {
                               color: isSelected ? const Color(0xFF0D47A1) : Colors.grey,
                             ),
                             const SizedBox(width: 16),
-                            Expanded(child: Text(entry.value.toString())),
+                            Expanded(child: Text(entry.value)),
                           ],
                         ),
                       ),

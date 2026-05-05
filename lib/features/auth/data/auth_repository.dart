@@ -92,4 +92,18 @@ class AuthRepository {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token') != null;
   }
+
+  Future<Map<String, dynamic>> getUser() async {
+    try {
+      final response = await _apiClient.dio.get('/auth/user');
+      if (response.statusCode == 200) {
+        return response.data['data']['user'];
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal mengambil data user');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
 }

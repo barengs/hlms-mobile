@@ -21,9 +21,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     final isLoggedIn = await _authRepository.isLoggedIn();
     if (isLoggedIn) {
-      // For now, we don't have a 'me' endpoint readily available in this seeder context, 
-      // so we just emit authenticated. In a real app, we'd fetch user data.
-      emit(const AuthAuthenticated({})); 
+      try {
+        final userData = await _authRepository.getUser();
+        emit(AuthAuthenticated(userData));
+      } catch (e) {
+        // If getting user fails (e.g. token expired), treat as unauthenticated
+        emit(AuthUnauthenticated());
+      }
     } else {
       emit(AuthUnauthenticated());
     }
