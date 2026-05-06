@@ -22,7 +22,7 @@ class AuthRepository {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
         
-        return data;
+        return data['user'];
       } else {
         throw Exception(response.data['message'] ?? 'Gagal masuk');
       }
@@ -54,7 +54,7 @@ class AuthRepository {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
         
-        return data;
+        return data['user'];
       } else {
         throw Exception(response.data['message'] ?? 'Gagal mendaftar');
       }
