@@ -14,8 +14,13 @@ class TokenInterceptor extends Interceptor {
 
       if (refreshToken != null) {
         try {
+          // Avoid infinite loops if refresh fails
+          if (err.requestOptions.path.contains('auth/refresh')) {
+            return super.onError(err, handler);
+          }
+
           // Attempt to refresh the token
-          final response = await dio.post('/auth/refresh');
+          final response = await dio.post('auth/refresh');
           
           if (response.statusCode == 200) {
             final newToken = response.data['data']['token'];

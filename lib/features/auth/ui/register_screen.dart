@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -47,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Pendaftaran berhasil!')),
           );
-          // Redirect or handle success
+          context.go('/onboarding');
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),

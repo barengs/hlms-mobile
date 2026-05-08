@@ -8,7 +8,7 @@ class OnboardingRepository {
 
   Future<List<dynamic>> getQuestions() async {
     try {
-      final response = await _apiClient.dio.get('/student/onboarding/questions');
+      final response = await _apiClient.dio.get('mobile/student/onboarding/questions');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat pertanyaan onboarding');
@@ -17,7 +17,7 @@ class OnboardingRepository {
 
   Future<void> submitOnboarding(List<Map<String, dynamic>> answers) async {
     try {
-      final response = await _apiClient.dio.post('/student/onboarding/submit', data: {
+      final response = await _apiClient.dio.post('mobile/student/onboarding/submit', data: {
         'answers': answers,
       });
       if (response.statusCode != 200) {

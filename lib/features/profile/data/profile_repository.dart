@@ -7,7 +7,7 @@ class ProfileRepository {
 
   Future<void> deleteAccount() async {
     try {
-      final response = await _apiClient.dio.delete('/profile');
+      final response = await _apiClient.dio.delete('profile');
       if (response.statusCode != 200) {
         throw Exception('Gagal menghapus akun');
       }
@@ -18,7 +18,7 @@ class ProfileRepository {
   
   Future<Map<String, dynamic>> getProfile() async {
     try {
-      final response = await _apiClient.dio.get('/profile');
+      final response = await _apiClient.dio.get('profile');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat profil');

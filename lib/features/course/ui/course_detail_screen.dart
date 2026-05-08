@@ -318,11 +318,19 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
               return Column(
                 children: [
                   _buildLessonItem(
-                    isCompleted ? Icons.check_circle : Icons.play_circle_filled, 
+                    lesson['type'] == 'quiz_v2' 
+                        ? Icons.quiz 
+                        : (isCompleted ? Icons.check_circle : Icons.play_circle_filled), 
                     lesson['title'] ?? 'Lesson',
-                    color: isCompleted ? Colors.green : const Color(0xFF003399),
+                    color: lesson['type'] == 'quiz_v2' 
+                        ? Colors.orange 
+                        : (isCompleted ? Colors.green : const Color(0xFF003399)),
                     onTap: () {
-                      context.push('/lesson/${course.slug}/${lesson['id']}');
+                      if (lesson['type'] == 'quiz_v2') {
+                        context.push('/quiz-v2/${lesson['id']}');
+                      } else {
+                        context.push('/lesson/${course.slug}/${lesson['id']}');
+                      }
                     },
                   ),
                   ...lessonAssignments.map((assignment) {
@@ -503,7 +511,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   final isAssignment = targetLesson['type'] == 'assignment';
                   
                   if (isQuiz) {
-                    context.push('/quiz/${targetLesson['id']}');
+                    if (targetLesson['type'] == 'quiz_v2') {
+                      context.push('/quiz-v2/${targetLesson['id']}');
+                    } else {
+                      context.push('/quiz/${targetLesson['id']}');
+                    }
                   } else if (isAssignment) {
                     context.push('/assignment/upload/${targetLesson['id']}');
                   } else {
@@ -515,7 +527,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   );
                 }
               } else {
-                context.push('/course/enroll/${course.id}');
+                context.push('/course/enroll/${course.slug}');
               }
             },
             style: ElevatedButton.styleFrom(
@@ -527,7 +539,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
               elevation: 0,
             ),
             child: Text(
-              isEnrolled ? 'LANJUTKAN BELAJAR' : 'DAFTAR SEKARANG',
+              isEnrolled ? 'LANJUTKAN BELAJAR' : 'AMBIL KURSUS',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),

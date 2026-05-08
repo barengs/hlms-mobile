@@ -186,12 +186,21 @@ class _LessonScreenState extends State<LessonScreen> {
                   _buildContentBody(_lessonData?['content']),
                   const SizedBox(height: 40),
                   
-                  // Next Button
+                  // Next / Assignment Button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () async {
+                        final assignmentId = _lessonData?['assignment_id'];
+                        final assignmentType = _lessonData?['assignment_type'];
+                        
+                        // If it's an assignment (and not a quiz which is handled in teaser)
+                        if (assignmentId != null && assignmentType != 'quiz') {
+                          context.push('/assignment/upload/$assignmentId');
+                          return;
+                        }
+
                         try {
                           await context.read<CourseRepository>().markLessonComplete(widget.slug, widget.lessonId);
                           
@@ -224,7 +233,9 @@ class _LessonScreenState extends State<LessonScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _lessonData?['next_lesson_id'] != null ? 'SELANJUTNYA' : 'SELESAI',
+                            (_lessonData?['assignment_id'] != null && _lessonData?['assignment_type'] != 'quiz')
+                                ? 'KERJAKAN TUGAS'
+                                : (_lessonData?['next_lesson_id'] != null ? 'SELANJUTNYA' : 'SELESAI'),
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                           ),
                           const SizedBox(width: 8),
@@ -248,21 +259,38 @@ class _LessonScreenState extends State<LessonScreen> {
       return const Text('Tidak ada deskripsi teks.', style: TextStyle(fontSize: 16));
     }
 
-    // Try to parse as JSON if it looks like JSON
-    final contentStr = content.toString();
-    if (contentStr.trim().startsWith('{') || contentStr.trim().startsWith('[')) {
-      try {
-        final decoded = jsonDecode(contentStr);
-        if (decoded is Map<String, dynamic> && decoded.containsKey('questions')) {
-          return _buildQuizTeaser(decoded);
-        }
-      } catch (_) {
-        // Not valid JSON or not a quiz, fall back to text
+    // If it's already a Map/List (decoded by backend)
+    if (content is Map<String, dynamic> && content.containsKey('questions')) {
+      return _buildQuizTeaser(content);
+    }
+    
+    if (content is List) {
+      // Could be a list of questions without wrapper
+      return _buildQuizTeaser({'questions': content});
+    }
+
+    // Try to parse as JSON if it's a string
+    if (content is String) {
+      final contentStr = content.trim();
+      if (contentStr.startsWith('{') || contentStr.startsWith('[')) {
+        try {
+          final decoded = jsonDecode(contentStr);
+          if (decoded is Map<String, dynamic> && decoded.containsKey('questions')) {
+            return _buildQuizTeaser(decoded);
+          } else if (decoded is List) {
+            return _buildQuizTeaser({'questions': decoded});
+          }
+        } catch (_) {}
       }
+      
+      return Text(
+        contentStr,
+        style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
+      );
     }
 
     return Text(
-      contentStr,
+      content.toString(),
       style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
     );
   }
@@ -299,13 +327,48 @@ class _LessonScreenState extends State<LessonScreen> {
             '${questions.length} Pertanyaan • Batas Waktu: ${quiz['timeLimit'] ?? "-"} Menit',
             style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
           ),
+          if (quiz.containsKey('last_result') && quiz['last_result'] != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: (quiz['last_result']['passed'] ?? false) ? Colors.green.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: (quiz['last_result']['passed'] ?? false) ? Colors.green.shade200 : Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    (quiz['last_result']['passed'] ?? false) ? Icons.check_circle : Icons.error,
+                    size: 16,
+                    color: (quiz['last_result']['passed'] ?? false) ? Colors.green : Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Skor Terakhir: ${quiz['last_result']['score']}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: (quiz['last_result']['passed'] ?? false) ? Colors.green.shade800 : Colors.red.shade800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              // Quiz assignment ID is typically linked via lesson or in the content JSON
-              final id = quiz['id'] ?? _lessonData?['assignment_id'];
-              if (id != null) {
-                 context.push('/quiz/$id');
+              // For relational quizzes, the ID is in the content (quiz variable here)
+              final quizId = quiz['id'];
+              final assignmentId = _lessonData?['assignment_id'];
+              final type = _lessonData?['assignment_type'] ?? _lessonData?['type'] ?? 'quiz';
+              
+              if (type == 'quiz_v2' || (quiz != null && quiz.containsKey('questions'))) {
+                context.push('/quiz-v2/$quizId');
+              } else if (assignmentId != null) {
+                context.push('/quiz/$assignmentId');
+              } else if (quizId != null) {
+                context.push('/quiz-v2/$quizId');
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('ID Kuis tidak ditemukan.')),
@@ -317,7 +380,12 @@ class _LessonScreenState extends State<LessonScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('KERJAKAN KUIS'),
+            child: Text(
+              (quiz.containsKey('last_result') && quiz['last_result'] != null)
+                  ? 'LIHAT HASIL'
+                  : 'KERJAKAN KUIS',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

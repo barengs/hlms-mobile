@@ -280,6 +280,8 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
       case 'course': return Icons.book_outlined;
       case 'session': return Icons.video_call_outlined;
       case 'assignment': return Icons.assignment_outlined;
+      case 'quiz':
+      case 'quiz_v2': return Icons.quiz_outlined;
       default: return Icons.rocket_launch_outlined;
     }
   }
@@ -289,6 +291,8 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
       case 'course': return Colors.blue;
       case 'session': return Colors.red;
       case 'assignment': return Colors.purple;
+      case 'quiz':
+      case 'quiz_v2': return Colors.orange;
       default: return Colors.grey;
     }
   }
@@ -312,7 +316,11 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
     if (type == 'course' && slug != null) {
       context.push('/course/$slug');
     } else if (type == 'assignment') {
-      context.push('/classroom/assignments/$refId');
+      context.push('/assignment/upload/$refId');
+    } else if (type == 'quiz') {
+      context.push('/quiz/$refId');
+    } else if (type == 'quiz_v2') {
+      context.push('/quiz-v2/$refId');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Aktivitas ini dapat dibuka di web.')),

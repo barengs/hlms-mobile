@@ -88,6 +88,13 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/quiz-v2/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return QuizScreen(quizId: id);
+        },
+      ),
+      GoRoute(
         path: '/classroom/:id',
         builder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);

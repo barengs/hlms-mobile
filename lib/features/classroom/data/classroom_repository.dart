@@ -8,7 +8,7 @@ class ClassroomRepository {
 
   Future<Map<String, dynamic>> getClassDetail(int classId) async {
     try {
-      final response = await _apiClient.dio.get('/classes/$classId');
+      final response = await _apiClient.dio.get('classes/$classId');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat detail kelas');
@@ -17,7 +17,7 @@ class ClassroomRepository {
 
   Future<List<dynamic>> getClassStream(int classId) async {
     try {
-      final response = await _apiClient.dio.get('/classes/$classId/stream');
+      final response = await _apiClient.dio.get('classes/$classId/stream');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat stream kelas');
@@ -26,7 +26,7 @@ class ClassroomRepository {
 
   Future<List<dynamic>> getClassWork(int classId) async {
     try {
-      final response = await _apiClient.dio.get('/classes/$classId/work');
+      final response = await _apiClient.dio.get('classes/$classId/work');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat tugas kelas');
@@ -35,7 +35,7 @@ class ClassroomRepository {
 
   Future<Map<String, dynamic>> getClassPeople(int classId) async {
     try {
-      final response = await _apiClient.dio.get('/classes/$classId/people');
+      final response = await _apiClient.dio.get('classes/$classId/people');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat daftar anggota kelas');
@@ -44,7 +44,7 @@ class ClassroomRepository {
 
   Future<void> joinClass(String classCode) async {
     try {
-      final response = await _apiClient.dio.post('/classes/join', data: {
+      final response = await _apiClient.dio.post('mobile/student/batches/join', data: {
         'class_code': classCode,
       });
       if (response.statusCode != 200) {
@@ -57,7 +57,7 @@ class ClassroomRepository {
 
   Future<bool> toggleActivityComplete(int activityId) async {
     try {
-      final response = await _apiClient.dio.post('/classes/activities/$activityId/toggle-complete');
+      final response = await _apiClient.dio.post('classes/activities/$activityId/toggle-complete');
       return response.data['data']['completed'] == true;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memperbarui status');

@@ -61,6 +61,9 @@ class MolangApp extends StatelessWidget {
               listener: (context, state) {
                 if (state is AuthUnauthenticated) {
                   AppRouter.router.go('/login');
+                } else if (state is AuthAuthenticated) {
+                  // Refresh home data when authenticated
+                  context.read<HomeBloc>().add(HomeDataRequested());
                 }
               },
               child: child!,

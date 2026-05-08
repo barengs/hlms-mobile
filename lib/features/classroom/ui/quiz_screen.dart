@@ -1,11 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
 
 class QuizScreen extends StatefulWidget {
-  final int assignmentId;
-  const QuizScreen({super.key, required this.assignmentId});
+  final int? assignmentId;
+  final int? quizId;
+  const QuizScreen({super.key, this.assignmentId, this.quizId});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -17,7 +19,9 @@ class _QuizScreenState extends State<QuizScreen> {
   Map<String, dynamic>? _quizData;
   List<dynamic> _questions = [];
   Map<String, String> _userAnswers = {};
+  Map<String, dynamic>? _lastResults;
   bool _isLoading = true;
+  bool _showQuestions = false;
 
   @override
   void initState() {
@@ -27,10 +31,39 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _loadQuiz() async {
     try {
-      final data = await context.read<CourseRepository>().getAssignmentDetail(widget.assignmentId);
+      Map<String, dynamic> data;
+      if (widget.quizId != null) {
+        data = await context.read<CourseRepository>().getQuizDetail(widget.quizId!);
+      } else {
+        data = await context.read<CourseRepository>().getAssignmentDetail(widget.assignmentId!);
+      }
+
       setState(() {
         _quizData = data;
-        _questions = data['content']['questions'] ?? [];
+        var content = data['content'];
+        
+        // Handle if content is a JSON string
+        if (content is String && content.isNotEmpty) {
+          try {
+            content = jsonDecode(content);
+          } catch (e) {
+            debugPrint('Error decoding quiz content: $e');
+          }
+        }
+        
+        // Load questions based on architecture
+        if (data.containsKey('questions') && data['questions'] != null) {
+          _questions = data['questions'];
+        } else if (content is Map && content.containsKey('questions')) {
+          _questions = content['questions'];
+        } else if (content is List) {
+          _questions = content;
+        } else {
+          _questions = [];
+        }
+        
+        _lastResults = data['results'];
+        _showQuestions = _lastResults == null;
         _isLoading = false;
       });
     } catch (e) {
@@ -62,27 +95,53 @@ class _QuizScreenState extends State<QuizScreen> {
       // Submit Quiz
       setState(() => _isLoading = true);
       try {
-        await context.read<CourseRepository>().submitAssignment(
-          assignmentId: widget.assignmentId,
-          answers: _userAnswers,
-        );
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Kuis Selesai!'),
-              content: const Text('Jawaban Anda telah dikirim dan dinilai secara otomatis.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    context.pop(); // close dialog
-                    context.pop(); // close quiz screen
-                  },
-                  child: const Text('Tutup'),
-                ),
-              ],
-            ),
+        if (widget.quizId != null) {
+          final result = await context.read<CourseRepository>().submitQuiz(
+            quizId: widget.quizId!,
+            answers: _userAnswers,
           );
+          if (mounted) {
+            final data = result['data'];
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(data['passed'] ? 'Lulus!' : 'Belum Lulus'),
+                content: Text('Skor Anda: ${data['score']}\n${data['message']}'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      context.pop(); // close dialog
+                      context.pop(); // close quiz screen
+                    },
+                    child: const Text('Tutup'),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          await context.read<CourseRepository>().submitAssignment(
+            assignmentId: widget.assignmentId!,
+            answers: _userAnswers,
+          );
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Kuis Selesai!'),
+                content: const Text('Jawaban Anda telah dikirim dan dinilai secara otomatis.'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      context.pop(); // close dialog
+                      context.pop(); // close quiz screen
+                    },
+                    child: const Text('Tutup'),
+                  ),
+                ],
+              ),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -104,6 +163,10 @@ class _QuizScreenState extends State<QuizScreen> {
         appBar: AppBar(title: const Text('Kuis')),
         body: const Center(child: Text('Tidak ada pertanyaan dalam kuis ini.')),
       );
+    }
+
+    if (_lastResults != null && !_showQuestions) {
+      return _buildResultsScreen();
     }
 
     final currentQ = _questions[_currentQuestionIndex];
@@ -203,6 +266,116 @@ class _QuizScreenState extends State<QuizScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildResultsScreen() {
+    final results = _lastResults!;
+    final bool passed = results['passed'] ?? false;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Hasil Kuis'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: passed ? Colors.green.shade50 : Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                passed ? Icons.emoji_events : Icons.sentiment_very_dissatisfied,
+                size: 80,
+                color: passed ? Colors.green : Colors.red,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              passed ? 'Selamat! Anda Lulus' : 'Maaf, Anda Belum Lulus',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: passed ? Colors.green.shade800 : Colors.red.shade800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  const Text('Skor Akhir Anda', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${results['score']}',
+                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('Benar', '${results['correct_count']}'),
+                      _buildStatItem('Total', '${results['total_questions']}'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 48),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _showQuestions = true;
+                    _currentQuestionIndex = 0;
+                    _userAnswers = {};
+                    _selectedAnswer = null;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF0D47A1),
+                  side: const BorderSide(color: Color(0xFF0D47A1)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('Ulangi Kuis'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('Kembali ke Materi'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
     );
   }
 }

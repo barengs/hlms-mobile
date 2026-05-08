@@ -9,7 +9,7 @@ class AuthRepository {
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      final response = await _apiClient.dio.post('/auth/login', data: {
+      final response = await _apiClient.dio.post('mobile/auth/login', data: {
         'email': email,
         'password': password,
       });
@@ -39,7 +39,7 @@ class AuthRepository {
     required String passwordConfirmation,
   }) async {
     try {
-      final response = await _apiClient.dio.post('/auth/register', data: {
+      final response = await _apiClient.dio.post('mobile/auth/register', data: {
         'name': name,
         'email': email,
         'password': password,
@@ -66,7 +66,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await _apiClient.dio.post('/auth/logout');
+      await _apiClient.dio.post('mobile/auth/logout');
     } finally {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
@@ -75,7 +75,7 @@ class AuthRepository {
 
   Future<void> forgotPassword(String email) async {
     try {
-      final response = await _apiClient.dio.post('/auth/forgot-password', data: {
+      final response = await _apiClient.dio.post('auth/forgot-password', data: {
         'email': email,
       });
 
@@ -95,7 +95,7 @@ class AuthRepository {
 
   Future<Map<String, dynamic>> getUser() async {
     try {
-      final response = await _apiClient.dio.get('/auth/user');
+      final response = await _apiClient.dio.get('mobile/auth/user');
       if (response.statusCode == 200) {
         return response.data['data']['user'];
       } else {

@@ -7,7 +7,7 @@ class ApiClient {
 
   ApiClient() {
     _dio = Dio(BaseOptions(
-      baseUrl: 'https://molang.umediatama.com/api/v1', // Production API URL
+      baseUrl: 'https://molang.umediatama.com/api/v1/', // Production API URL
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {

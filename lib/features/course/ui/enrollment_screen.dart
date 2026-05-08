@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
 import 'package:hlms_mobile/core/models/course.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 
 class EnrollmentScreen extends StatefulWidget {
   final String courseId;
@@ -50,7 +51,9 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     if (_currentStep == 1) {
       setState(() => _currentStep = 2);
     } else if (_currentStep == 2) {
-      if (_selectedPaymentMethod.isEmpty) {
+      final total = double.tryParse(_cartSummary?['total']?.toString() ?? '0') ?? 0;
+      final isFree = total <= 0;
+      if (!isFree && _selectedPaymentMethod.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih metode pembayaran')));
         return;
       }
@@ -58,7 +61,9 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     } else if (_currentStep == 3) {
       setState(() => _isProcessing = true);
       try {
-        await context.read<CourseRepository>().processCheckout();
+        await context.read<CourseRepository>().processCheckout({
+          'payment_simulation': true,
+        });
         setState(() {
           _isProcessing = false;
           _currentStep = 4;
@@ -80,34 +85,40 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (_currentStep > 1 && _currentStep < 4) {
-              setState(() => _currentStep--);
-            } else {
-              context.pop();
-            }
-          },
-        ),
-      ),
-      body: Column(
-        children: [
-          if (_currentStep < 4) _buildStepper(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: _buildStepContent(),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        final Map<String, dynamic> userData = authState is AuthAuthenticated ? authState.user : {};
+        
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+                if (_currentStep > 1 && _currentStep < 4) {
+                  setState(() => _currentStep--);
+                } else {
+                  context.pop();
+                }
+              },
             ),
           ),
-          _buildBottomButton(),
-        ],
-      ),
+          body: Column(
+            children: [
+              if (_currentStep < 4) _buildStepper(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: _buildStepContent(userData),
+                ),
+              ),
+              _buildBottomButton(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -171,14 +182,14 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     );
   }
 
-  Widget _buildStepContent() {
+  Widget _buildStepContent(Map<String, dynamic> userData) {
     switch (_currentStep) {
       case 1:
         return _buildOverviewStep();
       case 2:
         return _buildPaymentStep();
       case 3:
-        return _buildConfirmationSummary();
+        return _buildConfirmationSummary(userData);
       case 4:
         return _buildSuccessStep();
       default:
@@ -260,6 +271,39 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   }
 
   Widget _buildPaymentStep() {
+    final total = double.tryParse(_cartSummary?['total']?.toString() ?? '0') ?? 0;
+    final isFree = total <= 0;
+    
+    if (isFree) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Metode Pembayaran', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 16),
+                Text('Kursus ini Gratis!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Anda dapat langsung mengambil kursus ini tanpa perlu melakukan pembayaran. Klik Lanjutkan untuk konfirmasi.',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -288,12 +332,39 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     );
   }
 
-  Widget _buildConfirmationSummary() {
+  Widget _buildConfirmationSummary(Map<String, dynamic> userData) {
+    final total = double.tryParse(_cartSummary?['total']?.toString() ?? '0') ?? 0;
+    final isFree = total <= 0;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Konfirmasi Pesanan', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 24),
+        
+        const Text('Profil Siswa', style: TextStyle(color: Colors.grey, fontSize: 14)),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(userData['name'] ?? 'Nama Siswa', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 4),
+              Text(userData['email'] ?? 'Email Siswa', style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        const Text('Detail Pembayaran', style: TextStyle(color: Colors.grey, fontSize: 14)),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -303,16 +374,18 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
           ),
           child: Column(
             children: [
-              _buildPriceRow('Metode Pembayaran', _selectedPaymentMethod, '', ''),
+              _buildPriceRow('Metode Pembayaran', isFree ? 'Gratis' : _selectedPaymentMethod, '', ''),
               const Divider(height: 32),
               _buildPriceRow('Total yang harus dibayar', 'Rp ${_cartSummary?['total'] ?? 0}', '', '', isTotal: true),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        const Text(
-          'Dengan menekan tombol Bayar Sekarang, Anda menyetujui syarat dan ketentuan yang berlaku.',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
+        Text(
+          isFree 
+              ? 'Dengan menekan tombol Ambil Kursus, Anda akan langsung terdaftar di kursus ini.'
+              : 'Dengan menekan tombol Bayar Sekarang, Anda menyetujui syarat dan ketentuan yang berlaku.',
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
           textAlign: TextAlign.center,
         ),
       ],
@@ -408,8 +481,10 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       ],
     );
   }
-
   Widget _buildBottomButton() {
+    final total = double.tryParse(_cartSummary?['total']?.toString() ?? '0') ?? 0;
+    final isFree = total <= 0;
+    
     return Padding(
       padding: const EdgeInsets.all(24),
       child: ElevatedButton(
@@ -424,7 +499,9 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
         child: _isProcessing 
           ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Text(
-              _currentStep == 3 ? 'Bayar Sekarang' : (_currentStep == 4 ? 'Mulai Belajar' : 'Lanjutkan'), 
+              _currentStep == 3 
+                  ? (isFree ? 'Ambil Kursus' : 'Bayar Sekarang') 
+                  : (_currentStep == 4 ? 'Mulai Belajar' : 'Lanjutkan'), 
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
             ),
       ),

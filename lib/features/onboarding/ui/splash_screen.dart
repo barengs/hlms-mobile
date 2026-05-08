@@ -24,9 +24,18 @@ class _SplashScreenState extends State<SplashScreen> {
         final authState = context.read<AuthBloc>().state;
         if (authState is AuthAuthenticated) {
           final user = authState.user;
-          final onboardingCompleted = user['onboarding_completed'] == true || user['onboarding_completed'] == 1;
+          final profile = user['profile'] as Map<String, dynamic>?;
+          final roles = user['roles'] as List<dynamic>?;
           
-          if (onboardingCompleted) {
+          final isStudent = roles?.any((role) => role['name'] == 'student') ?? true;
+          final onboardingCompleted = profile?['onboarding_completed'] == true || 
+                                     profile?['onboarding_completed'] == 1 ||
+                                     user['onboarding_completed'] == true ||
+                                     (profile?['interests'] != null && (profile?['interests'] as List).isNotEmpty);
+          
+          // Only students who haven't completed onboarding should see the onboarding screen.
+          // Existing users, instructors, and admins should go straight to home.
+          if (!isStudent || onboardingCompleted) {
             context.go('/home');
           } else {
             context.go('/onboarding');

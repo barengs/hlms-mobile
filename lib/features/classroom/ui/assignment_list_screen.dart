@@ -92,6 +92,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
                           statusColor: statusColor,
                           isCompleted: isCompleted,
                           type: assignment['type'] ?? 'assignment',
+                          quizId: assignment['quiz_id'],
                         ),
                       );
                     },
@@ -109,6 +110,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     required Color statusColor,
     required bool isCompleted,
     required String type,
+    int? quizId,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -166,7 +168,9 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  if (type == 'quiz') {
+                  if (type == 'quiz_v2') {
+                    context.push('/quiz-v2/$quizId');
+                  } else if (type == 'quiz') {
                     context.push('/quiz/$id');
                   } else {
                     context.push('/assignment/upload/$id');

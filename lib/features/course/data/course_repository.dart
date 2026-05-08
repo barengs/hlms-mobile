@@ -10,7 +10,7 @@ class CourseRepository {
 
   Future<List<Course>> getLatestCourses() async {
     try {
-      final response = await _apiClient.dio.get('/public/courses', queryParameters: {
+      final response = await _apiClient.dio.get('public/courses', queryParameters: {
         'sort': 'latest',
         'per_page': 10,
       });
@@ -28,7 +28,7 @@ class CourseRepository {
 
   Future<List<Enrollment>> getMyLearning() async {
     try {
-      final response = await _apiClient.dio.get('/student/my-learning', queryParameters: {
+      final response = await _apiClient.dio.get('mobile/student/my-learning', queryParameters: {
         '_': DateTime.now().millisecondsSinceEpoch,
       });
 
@@ -54,7 +54,7 @@ class CourseRepository {
 
   Future<List<Enrollment>> getLearningHistory() async {
     try {
-      final response = await _apiClient.dio.get('/student/learning-history');
+      final response = await _apiClient.dio.get('student/learning-history');
 
       if (response.statusCode == 200) {
         final List data = response.data['data'];
@@ -69,7 +69,7 @@ class CourseRepository {
 
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
-      final response = await _apiClient.dio.get('/public/categories');
+      final response = await _apiClient.dio.get('public/categories');
 
       if (response.statusCode == 200) {
         final List data = response.data['data'];
@@ -84,7 +84,7 @@ class CourseRepository {
 
   Future<Course> getCourseDetail(String slug) async {
     try {
-      final response = await _apiClient.dio.get('/public/courses/$slug');
+      final response = await _apiClient.dio.get('public/courses/$slug');
 
       if (response.statusCode == 200) {
         return Course.fromJson(response.data['data'], response.data['meta']);
@@ -98,7 +98,7 @@ class CourseRepository {
 
   Future<Map<String, dynamic>> getLearningDetail(String slug) async {
     try {
-      final response = await _apiClient.dio.get('/student/courses/$slug/learning');
+      final response = await _apiClient.dio.get('mobile/student/courses/$slug');
       return response.data['data'];
     } on DioException catch (e) {
       final msg = e.response?.data['message'] ?? e.message;
@@ -110,7 +110,7 @@ class CourseRepository {
 
   Future<Map<String, dynamic>> getLessonDetail(String slug, int lessonId) async {
     try {
-      final response = await _apiClient.dio.get('/student/courses/$slug/lessons/$lessonId');
+      final response = await _apiClient.dio.get('mobile/student/courses/$slug/lessons/$lessonId');
       return response.data['data'];
     } on DioException catch (e) {
       final msg = e.response?.data['message'] ?? e.message;
@@ -122,7 +122,7 @@ class CourseRepository {
 
   Future<void> markLessonComplete(String slug, int lessonId) async {
     try {
-      await _apiClient.dio.post('/student/courses/$slug/lessons/$lessonId/complete');
+      await _apiClient.dio.post('mobile/student/courses/$slug/lessons/$lessonId/complete');
     } catch (e) {
       throw Exception('Gagal memperbarui progres');
     }
@@ -130,10 +130,21 @@ class CourseRepository {
 
   Future<Map<String, dynamic>> getAssignmentDetail(int assignmentId) async {
     try {
-      final response = await _apiClient.dio.get('/student/assignments/$assignmentId');
+      final response = await _apiClient.dio.get('mobile/student/assignments/$assignmentId');
       return response.data['data'];
     } catch (e) {
       throw Exception('Gagal memuat detail tugas');
+    }
+  }
+
+  Future<Map<String, dynamic>> getQuizDetail(int quizId) async {
+    try {
+      final response = await _apiClient.dio.get('mobile/student/quizzes/$quizId');
+      return response.data['data'];
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal memuat detail kuis');
+    } catch (e) {
+      throw Exception('Terjadi kesalahan saat memuat kuis');
     }
   }
 
@@ -161,7 +172,7 @@ class CourseRepository {
       }
 
       final response = await _apiClient.dio.post(
-        '/student/assignments/$assignmentId/submit',
+        'mobile/student/assignments/$assignmentId/submit',
         data: formData,
       );
 
@@ -179,11 +190,26 @@ class CourseRepository {
       throw Exception(e.response?.data['message'] ?? 'Terjadi kesalahan saat mengumpulkan tugas');
     }
   }
+  Future<Map<String, dynamic>> submitQuiz({
+    required int quizId,
+    required Map<String, String> answers,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'mobile/student/quizzes/$quizId/submit',
+        data: {'answers': answers},
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal mengumpulkan kuis');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getAssignments() async {
     try {
-      final response = await _apiClient.dio.get('/student/assignments');
+      final response = await _apiClient.dio.get('mobile/student/assignments');
       if (response.statusCode == 200) {
-        final List data = response.data['data']['data']; // Backend returns paginated data
+        final List data = response.data['data']; 
         return data.cast<Map<String, dynamic>>();
       } else {
         throw Exception('Gagal memuat daftar tugas');
@@ -194,7 +220,7 @@ class CourseRepository {
   }
   Future<void> addToCart(int courseId) async {
     try {
-      await _apiClient.dio.post('/cart', data: {'course_id': courseId});
+      await _apiClient.dio.post('cart', data: {'course_id': courseId});
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal menambahkan ke keranjang');
     }
@@ -202,25 +228,33 @@ class CourseRepository {
 
   Future<Map<String, dynamic>> getCart() async {
     try {
-      final response = await _apiClient.dio.get('/cart');
+      final response = await _apiClient.dio.get('cart');
       return response.data['data'];
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat keranjang');
     }
   }
 
-  Future<Map<String, dynamic>> processCheckout() async {
+  Future<Map<String, dynamic>> processCheckout([Map<String, dynamic>? data]) async {
     try {
-      final response = await _apiClient.dio.post('/checkout/process');
+      final response = await _apiClient.dio.post('checkout/process', data: data);
       return response.data['data'];
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memproses checkout');
     }
   }
 
+  Future<void> enrollCourse(String slug) async {
+    try {
+      await _apiClient.dio.post('mobile/student/courses/$slug/enroll');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal mendaftar kursus');
+    }
+  }
+
   Future<List<Course>> getRecommendations() async {
     try {
-      final response = await _apiClient.dio.get('/student/recommendations');
+      final response = await _apiClient.dio.get('mobile/student/recommendations');
       if (response.statusCode == 200) {
         final List data = response.data['data'];
         return data.map((json) => Course.fromJson(json)).toList();

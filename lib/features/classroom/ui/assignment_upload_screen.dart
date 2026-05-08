@@ -327,25 +327,49 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
                 duration: const Duration(milliseconds: 300),
                 child: _isSubmitting
                     ? _SubmittingIndicator()
-                    : ElevatedButton(
-                        key: const ValueKey('submit_button'),
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
-                          foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          hasSubmitted
-                              ? 'Perbarui Pengumpulan'
-                              : 'Kirim Tugas',
-                          style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
+                    : InkWell(
+                        onTap: _submit,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          key: const ValueKey('submit_button'),
+                          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0D47A1).withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                hasSubmitted ? Icons.update : Icons.send_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                hasSubmitted
+                                    ? 'Perbarui Pengumpulan'
+                                    : 'Kirim Tugas Sekarang',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
               ),
