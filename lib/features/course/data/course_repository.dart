@@ -153,6 +153,8 @@ class CourseRepository {
     String? content,
     Map<String, dynamic>? answers,
     String? filePath,
+    List<int>? fileBytes,
+    String? fileName,
   }) async {
     try {
       FormData formData = FormData();
@@ -164,7 +166,13 @@ class CourseRepository {
           formData.fields.add(MapEntry('answers[$key]', value.toString()));
         });
       }
-      if (filePath != null) {
+      
+      if (fileBytes != null && fileName != null) {
+        formData.files.add(MapEntry(
+          'file',
+          MultipartFile.fromBytes(fileBytes, filename: fileName),
+        ));
+      } else if (filePath != null) {
         formData.files.add(MapEntry(
           'file',
           await MultipartFile.fromFile(filePath),

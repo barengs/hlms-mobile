@@ -16,6 +16,7 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
     with TickerProviderStateMixin {
   String? _selectedFileName;
   String? _selectedFilePath;
+  List<int>? _selectedFileBytes;
   final _contentController = TextEditingController();
   Map<String, dynamic>? _assignmentData;
   bool _isLoading = true;
@@ -75,13 +76,24 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'zip', 'rar', 'doc', 'docx'],
+      allowedExtensions: [
+        // Documents
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt',
+        // Images
+        'jpg', 'jpeg', 'png', 'webp', 'gif',
+        // Code
+        'dart', 'js', 'ts', 'py', 'java', 'cpp', 'c', 'html', 'css', 'json', 'php',
+        // Archives
+        'zip', 'rar'
+      ],
+      withData: true, // Crucial for Web
     );
 
     if (result != null) {
       setState(() {
         _selectedFileName = result.files.single.name;
         _selectedFilePath = result.files.single.path;
+        _selectedFileBytes = result.files.single.bytes;
       });
     }
   }
@@ -105,6 +117,8 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
             assignmentId: widget.assignmentId,
             content: _contentController.text,
             filePath: _selectedFilePath,
+            fileBytes: _selectedFileBytes,
+            fileName: _selectedFileName,
           );
 
       if (mounted) {
