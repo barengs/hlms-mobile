@@ -14,6 +14,8 @@ class ClassroomScreen extends StatefulWidget {
 class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Map<String, dynamic>? _classData;
+  List<dynamic> _streamData = [];
+  Map<String, dynamic>? _peopleData;
   bool _isLoading = true;
 
   @override
@@ -25,14 +27,31 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
 
   Future<void> _loadData() async {
     try {
-      final data = await context.read<ClassroomRepository>().getClassDetail(widget.classId);
-      setState(() {
-        _classData = data;
-        _isLoading = false;
-      });
-    } catch (e) {
+      final repo = context.read<ClassroomRepository>();
+      final results = await Future.wait([
+        repo.getClassDetail(widget.classId),
+        repo.getClassStream(widget.classId).catchError((_) => <dynamic>[]),
+        repo.getClassPeople(widget.classId).catchError((_) => <String, dynamic>{}),
+      ]);
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        setState(() {
+          _classData = results[0] as Map<String, dynamic>?;
+          _streamData = (results[1] as List<dynamic>?) ?? [];
+          _peopleData = results[2] as Map<String, dynamic>?;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading classroom data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          // Ensure we don't leave _classData in an inconsistent state if it fails
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: ${e.toString()}')),
+        );
       }
     }
   }
@@ -43,40 +62,242 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_classData == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text('Gagal memuat data kelas'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _isLoading = true);
+                  _loadData();
+                },
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_classData?['name'] ?? 'Kelas'),
-        bottom: TabBar(
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 280,
+              pinned: true,
+              stretch: true,
+              backgroundColor: const Color(0xFF0D47A1),
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                title: innerBoxIsScrolled 
+                  ? Text(_classData?['name'] ?? 'Kelas', style: const TextStyle(color: Colors.white, fontSize: 16))
+                  : null,
+                background: _buildHeaderBackground(),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  color: Colors.white,
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFF0D47A1),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: const Color(0xFF0D47A1),
+                    indicatorWeight: 3,
+                    tabs: const [
+                      Tab(text: 'Forum'),
+                      Tab(text: 'Tugas Kelas'),
+                      Tab(text: 'Anggota'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: TabBarView(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Forum'),
-            Tab(text: 'Tugas Kelas'),
-            Tab(text: 'Anggota'),
+          children: [
+            _buildStreamTab(),
+            _buildClassworkTab(),
+            _buildPeopleTab(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildStreamTab(),
-          _buildClassworkTab(),
-          _buildPeopleTab(),
-        ],
       ),
     );
   }
 
+  Widget _buildHeaderBackground() {
+    final instructor = _classData?['instructor'];
+    final description = _classData?['description'] ?? 'Belum ada deskripsi kelas.';
+    
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Gradient Background
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+            ),
+          ),
+        ),
+        // Decorative Circles
+        Positioned(
+          top: -50,
+          right: -50,
+          child: CircleAvatar(
+            radius: 100,
+            backgroundColor: Colors.white.withOpacity(0.05),
+          ),
+        ),
+        // Content
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 40, 20, 60),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  _classData?['name'] ?? 'Kelas',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.white24,
+                      backgroundImage: instructor?['avatar'] != null ? NetworkImage(instructor['avatar']) : null,
+                      child: instructor?['avatar'] == null ? const Icon(Icons.person, size: 14, color: Colors.white) : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      instructor?['name'] ?? 'Instruktur',
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    _buildHeaderStat(Icons.people_outline, '${_classData?['students_count'] ?? 0} Siswa'),
+                    const SizedBox(width: 16),
+                    _buildHeaderStat(Icons.topic_outlined, '${_classData?['topicsCount'] ?? 0} Topik'),
+                    const SizedBox(width: 16),
+                    _buildHeaderStat(Icons.play_lesson_outlined, '${_classData?['materialsCount'] ?? 0} Materi'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeaderStat(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white60, size: 16),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+      ],
+    );
+  }
+
   Widget _buildStreamTab() {
+    if (_streamData.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada pengumuman.',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: 5, // Dummy items for now, connect to getClassStream
+      itemCount: _streamData.length,
       itemBuilder: (context, index) {
+        final item = _streamData[index];
+        final author = item['user'];
+        final date = item['created_at'];
+
         return Card(
+          elevation: 0,
           margin: const EdgeInsets.only(bottom: 16),
-          child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.announcement)),
-            title: const Text('Pengumuman Baru'),
-            subtitle: Text('Silakan cek materi terbaru untuk bab $index'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade200),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
+                      backgroundImage: author?['avatar'] != null ? NetworkImage(author['avatar']) : null,
+                      child: author?['avatar'] == null ? const Icon(Icons.person, size: 20, color: Color(0xFF0D47A1)) : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            author?['name'] ?? 'Instruktur',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            date != null ? date.toString().split('T')[0] : 'Baru saja',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  item['content'] ?? '',
+                  style: const TextStyle(height: 1.5),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -84,14 +305,15 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
   }
 
   Widget _buildClassworkTab() {
-    final List<dynamic> timeline = _classData?['timeline'] ?? [];
+    final List<dynamic> timeline = (_classData?['timeline'] as List<dynamic>?) ?? [];
+    final List<dynamic> topics = (_classData?['classwork_topics'] as List<dynamic>?) ?? [];
     
-    if (timeline.isEmpty) {
+    if (timeline.isEmpty && topics.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.map_outlined, size: 80, color: Colors.grey.shade300),
+            Icon(Icons.auto_stories_outlined, size: 80, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               'Belum ada alur belajar.',
@@ -102,6 +324,43 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
       );
     }
 
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      children: [
+        // Section Header
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 24,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D47A1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Alur Belajar',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A237E),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        
+        // Roadmap Content
+        if (timeline.isNotEmpty)
+          _buildTimelineView(timeline)
+        else
+          _buildTopicsTimelineView(topics),
+      ],
+    );
+  }
+
+  Widget _buildTimelineView(List<dynamic> timeline) {
     return ListView.builder(
       padding: const EdgeInsets.all(24),
       itemCount: timeline.length,
@@ -158,120 +417,203 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
               Expanded(
                 child: Opacity(
                   opacity: isActive ? 1.0 : 0.5,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 24),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isCompleted ? Colors.green.withOpacity(0.05) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isCompleted 
-                            ? Colors.green.withOpacity(0.2) 
-                            : Colors.grey.shade100,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getColorForType(item['type']).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                item['type'].toString().toUpperCase(),
-                                style: TextStyle(
-                                  color: _getColorForType(item['type']),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (item['is_required'] == true) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'WAJIB',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          item['title'] ?? '',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isCompleted ? Colors.green.shade800 : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextButton(
-                              onPressed: isActive ? () => _toggleComplete(item['id']) : null,
-                              style: TextButton.styleFrom(
-                                foregroundColor: isCompleted ? Colors.green : const Color(0xFF0D47A1),
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(0, 0),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(isCompleted ? Icons.check_circle : Icons.circle_outlined, size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    isCompleted ? 'Selesai' : 'Tandai Selesai',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: isActive ? () => _handleOpenItem(item) : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0D47A1),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                minimumSize: const Size(0, 0),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              child: const Text('Buka', style: TextStyle(fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _buildItemCard(item, item['type'], isActive, isCompleted),
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTopicsTimelineView(List<dynamic> topics) {
+    return Column(
+      children: topics.asMap().entries.map((entry) {
+        final topic = entry.value as Map<String, dynamic>;
+        final sessions = (topic['sessions'] as List<dynamic>?) ?? [];
+        final assignments = (topic['assignments'] as List<dynamic>?) ?? [];
+        final materials = [...sessions, ...assignments];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Materials List with Connectors
+            ...materials.asMap().entries.map((mEntry) {
+              final mIndex = mEntry.key;
+              final item = mEntry.value;
+              final isLast = mIndex == materials.length - 1;
+
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Roadmap Connector Line
+                    Padding(
+                      padding: const EdgeInsets.only(left: 14),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(color: const Color(0xFF0D47A1), width: 2),
+                            ),
+                          ),
+                          if (!isLast)
+                            Expanded(
+                              child: Container(
+                                width: 2,
+                                color: const Color(0xFF0D47A1).withOpacity(0.2),
+                              ),
+                            )
+                          else
+                            const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Item Card
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: _buildItemCard(
+                          item,
+                          item['type'] ?? 'session',
+                          true,
+                          item['is_completed'] == true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            
+            const SizedBox(height: 16),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildItemCard(Map<String, dynamic> item, String type, bool isActive, bool isCompleted) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isCompleted ? Colors.green.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCompleted 
+              ? Colors.green.withOpacity(0.2) 
+              : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getColorForType(type).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  type.toUpperCase(),
+                  style: TextStyle(
+                    color: _getColorForType(type),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (item['is_required'] == true || item['is_required'] == "1") ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'WAJIB',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (item['duration'] != null)
+                Text(
+                  '${item['duration']} min',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item['title'] ?? '',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isCompleted ? Colors.green.shade800 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (isActive)
+                TextButton(
+                  onPressed: () => _toggleComplete(item['id']),
+                  style: TextButton.styleFrom(
+                    foregroundColor: isCompleted ? Colors.green : const Color(0xFF0D47A1),
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(isCompleted ? Icons.check_circle : Icons.circle_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        isCompleted ? 'Selesai' : 'Tandai Selesai',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                const SizedBox.shrink(),
+              ElevatedButton(
+                onPressed: isActive ? () => _handleOpenItem(item, type) : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D47A1),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size(0, 0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Buka', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -308,19 +650,80 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
     }
   }
 
-  void _handleOpenItem(Map<String, dynamic> item) {
-    final type = item['type'];
-    final refId = item['reference_id'];
+  Widget _buildPeopleTab() {
+    final instructor = _classData?['instructor'];
+    final students = (_peopleData?['students'] as List<dynamic>?) ?? (_classData?['students'] as List<dynamic>?) ?? [];
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const Text(
+          'Instruktur',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+        ),
+        const SizedBox(height: 16),
+        _buildPersonTile(instructor?['name'] ?? 'Instruktur', instructor?['avatar']),
+        const SizedBox(height: 32),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Teman Sekelas',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+            ),
+            Text(
+              '${students.length} Siswa',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (students.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Text('Belum ada siswa yang bergabung.', style: TextStyle(color: Colors.grey.shade400)),
+            ),
+          )
+        else
+          ...students.map((s) => _buildPersonTile(s['name'] ?? 'Siswa', s['avatar'])),
+      ],
+    );
+  }
+
+  Widget _buildPersonTile(String name, String? avatar) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
+            backgroundImage: avatar != null ? NetworkImage(avatar) : null,
+            child: avatar == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
+          ),
+          const SizedBox(width: 16),
+          Text(
+            name,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleOpenItem(Map<String, dynamic> item, String type) {
+    final refId = item['reference_id'] ?? item['id'];
     final slug = item['slug'];
 
     if (type == 'course' && slug != null) {
       context.push('/course/$slug');
     } else if (type == 'assignment') {
       context.push('/assignment/upload/$refId');
-    } else if (type == 'quiz') {
+    } else if (type == 'quiz' || type == 'quiz_v2') {
       context.push('/quiz/$refId');
-    } else if (type == 'quiz_v2') {
-      context.push('/quiz-v2/$refId');
+    } else if (type == 'session' || type == 'material') {
+      _showSessionDetails(item);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Aktivitas ini dapat dibuka di web.')),
@@ -328,7 +731,117 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
     }
   }
 
-  Widget _buildPeopleTab() {
-    return const Center(child: Text('Daftar Anggota Kelas'));
+  void _showSessionDetails(Map<String, dynamic> item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getIconForType(item['type'] ?? 'material'),
+                    color: const Color(0xFF0D47A1),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (item['type'] ?? 'Materi').toString().toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[800],
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        item['title'] ?? 'Detail Materi',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Deskripsi',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              item['description'] ?? 'Tidak ada deskripsi untuk materi ini.',
+              style: TextStyle(color: Colors.grey[700], height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            if (item['meetingUrl'] != null || item['recordingUrl'] != null || item['content_url'] != null)
+              ElevatedButton(
+                onPressed: () {
+                  // In real app, use url_launcher
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Membuka tautan...')),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D47A1),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Buka Tautan Materi'),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: const Text(
+                  'Belum ada tautan atau file yang dilampirkan untuk materi ini.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 }
