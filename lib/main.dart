@@ -10,6 +10,8 @@ import 'package:hlms_mobile/features/home/logic/home_bloc/home_bloc.dart';
 import 'package:hlms_mobile/features/profile/data/profile_repository.dart';
 import 'package:hlms_mobile/features/classroom/data/classroom_repository.dart';
 import 'package:hlms_mobile/features/onboarding/data/onboarding_repository.dart';
+import 'package:hlms_mobile/features/instructor/data/instructor_repository.dart';
+import 'package:hlms_mobile/features/instructor/logic/instructor_dashboard_bloc/instructor_dashboard_bloc.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,9 @@ class MolangApp extends StatelessWidget {
         RepositoryProvider(
           create: (context) => OnboardingRepository(context.read<ApiClient>()),
         ),
+        RepositoryProvider(
+          create: (context) => InstructorRepository(context.read<ApiClient>()),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -49,6 +54,9 @@ class MolangApp extends StatelessWidget {
           BlocProvider(
             create: (context) => HomeBloc(context.read<CourseRepository>())
               ..add(HomeDataRequested()),
+          ),
+          BlocProvider(
+            create: (context) => InstructorDashboardBloc(context.read<InstructorRepository>()),
           ),
         ],
         child: MaterialApp.router(
@@ -62,8 +70,11 @@ class MolangApp extends StatelessWidget {
                 if (state is AuthUnauthenticated) {
                   AppRouter.router.go('/login');
                 } else if (state is AuthAuthenticated) {
-                  // Refresh home data when authenticated
-                  context.read<HomeBloc>().add(HomeDataRequested());
+                  final roles = state.user['roles'] as List<dynamic>? ?? [];
+                  final isInstructor = roles.any((role) => role['name'] == 'instructor');
+                  if (!isInstructor) {
+                    context.read<HomeBloc>().add(HomeDataRequested());
+                  }
                 }
               },
               child: child!,

@@ -37,7 +37,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          context.go('/home');
+          final roles = state.user['roles'] as List<dynamic>? ?? [];
+          final isInstructor = roles.any((role) => role['name'] == 'instructor');
+          if (isInstructor) {
+            context.go('/instructor/home');
+          } else {
+            context.go('/home');
+          }
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),

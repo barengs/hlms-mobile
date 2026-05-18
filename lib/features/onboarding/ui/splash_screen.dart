@@ -27,15 +27,17 @@ class _SplashScreenState extends State<SplashScreen> {
           final profile = user['profile'] as Map<String, dynamic>?;
           final roles = user['roles'] as List<dynamic>?;
           
+          final isInstructor = roles?.any((role) => role['name'] == 'instructor') ?? false;
           final isStudent = roles?.any((role) => role['name'] == 'student') ?? true;
           final onboardingCompleted = profile?['onboarding_completed'] == true || 
                                      profile?['onboarding_completed'] == 1 ||
                                      user['onboarding_completed'] == true ||
                                      (profile?['interests'] != null && (profile?['interests'] as List).isNotEmpty);
           
-          // Only students who haven't completed onboarding should see the onboarding screen.
-          // Existing users, instructors, and admins should go straight to home.
-          if (!isStudent || onboardingCompleted) {
+          // Redirect based on role
+          if (isInstructor) {
+            context.go('/instructor/home');
+          } else if (!isStudent || onboardingCompleted) {
             context.go('/home');
           } else {
             context.go('/onboarding');
