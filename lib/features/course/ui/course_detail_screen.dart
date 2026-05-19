@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/core/models/course.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
 import 'package:hlms_mobile/features/course/logic/course_detail_bloc/course_detail_bloc.dart';
 
@@ -48,6 +49,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
           if (state is CourseDetailLoaded) {
             final course = state.course;
             final isEnrolled = course.isEnrolled || widget.isEnrolled;
+            
+            final authState = context.read<AuthBloc>().state;
+            bool isInstructor = false;
+            if (authState is AuthAuthenticated) {
+              final roles = authState.user['roles'] as List<dynamic>?;
+              isInstructor = roles?.any((role) => role['name'] == 'instructor') ?? false;
+            }
+
             return Scaffold(
               backgroundColor: Colors.white,
               body: SafeArea(
@@ -73,7 +82,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   ],
                 ),
               ),
-              bottomNavigationBar: _buildBottomEnrollButton(course, isEnrolled),
+              bottomNavigationBar: isInstructor ? null : _buildBottomEnrollButton(course, isEnrolled),
             );
           }
 

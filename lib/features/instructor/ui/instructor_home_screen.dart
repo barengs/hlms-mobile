@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 import 'package:hlms_mobile/features/instructor/logic/instructor_dashboard_bloc/instructor_dashboard_bloc.dart';
 import 'package:hlms_mobile/features/instructor/logic/instructor_dashboard_bloc/instructor_dashboard_state.dart';
 
 class InstructorHomeScreen extends StatelessWidget {
-  const InstructorHomeScreen({super.key});
+  final Function(int)? onTabChange;
+  const InstructorHomeScreen({super.key, this.onTabChange});
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +57,13 @@ class InstructorHomeScreen extends StatelessWidget {
                   children: [
                     _buildWelcomeSection(instructorName),
                     const SizedBox(height: 24),
-                    _buildStatsGrid(stats),
+                    _buildStatsGrid(context, stats),
                     const SizedBox(height: 24),
-                    _buildActionItems(actions),
+                    _buildActionItems(context, actions),
                     const SizedBox(height: 24),
-                    _buildTopCourses(topCourses),
+                    _buildTopCourses(context, topCourses),
                     const SizedBox(height: 24),
-                    _buildRecentActivities(activities),
+                    _buildRecentActivities(context, activities),
                   ],
                 ),
               ),
@@ -90,7 +92,7 @@ class InstructorHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(Map<String, dynamic> stats) {
+  Widget _buildStatsGrid(BuildContext context, Map<String, dynamic> stats) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -104,68 +106,81 @@ class InstructorHomeScreen extends StatelessWidget {
           value: '${stats['total_students'] ?? 0}',
           icon: Icons.people,
           color: Colors.blue,
+          onTap: () => context.push('/instructor/students'),
         ),
         _buildStatCard(
           title: 'Total Kursus',
           value: '${stats['total_courses'] ?? 0}',
           icon: Icons.school,
           color: Colors.orange,
+          onTap: () => onTabChange?.call(1),
         ),
         _buildStatCard(
           title: 'Pendapatan Bulan Ini',
           value: 'Rp ${_formatCurrency(stats['monthly_revenue'] ?? 0)}',
           icon: Icons.monetization_on,
           color: Colors.green,
+          onTap: () => onTabChange?.call(2),
         ),
         _buildStatCard(
           title: 'Rating Rata-rata',
           value: '${stats['average_rating'] ?? 0.0}',
           icon: Icons.star,
           color: Colors.amber,
+          onTap: () => onTabChange?.call(1),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard({required String title, required String value, required IconData icon, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildActionItems(Map<String, dynamic> actions) {
+  Widget _buildActionItems(BuildContext context, Map<String, dynamic> actions) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -178,42 +193,47 @@ class InstructorHomeScreen extends StatelessWidget {
           icon: Icons.assignment_turned_in,
           title: '${actions['pending_grading'] ?? 0} Tugas Menunggu Penilaian',
           color: Colors.redAccent,
+          onTap: () => context.push('/instructor/submissions'),
         ),
         const SizedBox(height: 8),
         _buildActionTile(
           icon: Icons.question_answer,
           title: '${actions['unanswered_questions'] ?? 0} Pertanyaan Belum Terjawab',
           color: Colors.orangeAccent,
+          onTap: () => context.push('/instructor/discussions'),
         ),
       ],
     );
   }
 
-  Widget _buildActionTile({required IconData icon, required String title, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w600),
+  Widget _buildActionTile({required IconData icon, required String title, required Color color, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(color: color.withOpacity(0.8), fontWeight: FontWeight.w600),
+              ),
             ),
-          ),
-          Icon(Icons.chevron_right, color: color),
-        ],
+            Icon(Icons.chevron_right, color: color),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTopCourses(List<dynamic> courses) {
+  Widget _buildTopCourses(BuildContext context, List<dynamic> courses) {
     if (courses.isEmpty) return const SizedBox();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,6 +285,12 @@ class InstructorHomeScreen extends StatelessWidget {
                   course['trend'] ?? '',
                   style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                 ),
+                onTap: () {
+                  final courseIdOrSlug = course['slug'] ?? course['id']?.toString() ?? '';
+                  if (courseIdOrSlug.isNotEmpty) {
+                    context.push('/course/$courseIdOrSlug?enrolled=true');
+                  }
+                },
               ),
             );
           },
@@ -273,7 +299,7 @@ class InstructorHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentActivities(List<dynamic> activities) {
+  Widget _buildRecentActivities(BuildContext context, List<dynamic> activities) {
     if (activities.isEmpty) return const SizedBox();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,6 +329,16 @@ class InstructorHomeScreen extends StatelessWidget {
                 _formatDate(act['created_at']),
                 style: const TextStyle(fontSize: 12),
               ),
+              onTap: () {
+                final message = (act['message'] ?? '').toString().toLowerCase();
+                if (message.contains('tugas') || message.contains('submission') || message.contains('nilai')) {
+                  context.push('/instructor/submissions');
+                } else if (message.contains('pertanyaan') || message.contains('diskusi') || message.contains('tanya') || message.contains('discussion')) {
+                  context.push('/instructor/discussions');
+                } else {
+                  onTabChange?.call(1);
+                }
+              },
             );
           },
         ),
@@ -312,7 +348,6 @@ class InstructorHomeScreen extends StatelessWidget {
 
   String _formatCurrency(dynamic amount) {
     if (amount == null) return '0';
-    // Simple formatting for thousands
     return amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
   }
 
@@ -326,3 +361,4 @@ class InstructorHomeScreen extends StatelessWidget {
     }
   }
 }
+

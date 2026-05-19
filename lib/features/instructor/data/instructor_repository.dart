@@ -83,4 +83,128 @@ class InstructorRepository {
       throw Exception(message);
     }
   }
+
+  Future<List<dynamic>> getStudents() async {
+    try {
+      final response = await _apiClient.dio.get('instructor/students');
+      if (response.statusCode == 200) {
+        if (response.data is Map && response.data['data'] != null) {
+          return response.data['data'] as List<dynamic>;
+        } else if (response.data is List) {
+          return response.data as List<dynamic>;
+        }
+        return [];
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal memuat daftar siswa');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<List<dynamic>> getSubmissions({String? status}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (status != null) {
+        queryParams['status'] = status;
+      }
+      final response = await _apiClient.dio.get('instructor/submissions', queryParameters: queryParams);
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data is Map) {
+          if (data['data'] is List) {
+            return data['data'] as List<dynamic>;
+          }
+        } else if (data is List) {
+          return data;
+        }
+        return [];
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal memuat pengumpulan tugas');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> gradeSubmission({
+    required int submissionId,
+    required double pointsAwarded,
+    String? feedback,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'instructor/submissions/$submissionId/grade',
+        data: {
+          'points_awarded': pointsAwarded,
+          'instructor_feedback': feedback,
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message'] ?? 'Gagal menilai tugas');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<Map<String, dynamic>> aiGradeSubmission(int submissionId) async {
+    try {
+      final response = await _apiClient.dio.post('instructor/submissions/$submissionId/ai-grade');
+      if (response.statusCode == 200) {
+        return response.data['data'] as Map<String, dynamic>;
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal memicu penilaian AI');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<List<dynamic>> getDiscussions() async {
+    try {
+      final response = await _apiClient.dio.get('discussions');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['data'] is List) {
+          return data['data'] as List<dynamic>;
+        } else if (data is List) {
+          return data;
+        }
+        return [];
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal memuat diskusi');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> replyToDiscussion({
+    required int parentId,
+    required String content,
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'discussions',
+        data: {
+          'parent_id': parentId,
+          'content': content,
+          'type': 'discussion',
+        },
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(response.data['message'] ?? 'Gagal mengirim balasan');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
 }
+

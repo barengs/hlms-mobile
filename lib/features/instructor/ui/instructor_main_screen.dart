@@ -17,8 +17,14 @@ class InstructorMainScreen extends StatefulWidget {
 class _InstructorMainScreenState extends State<InstructorMainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const InstructorHomeScreen(),
+  List<Widget> get _pages => [
+    InstructorHomeScreen(
+      onTabChange: (index) {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+    ),
     const InstructorCourseScreen(),
     const InstructorRedeemScreen(),
     const InstructorProfileScreen(),

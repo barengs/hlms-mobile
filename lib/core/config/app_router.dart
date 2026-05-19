@@ -6,6 +6,9 @@ import 'package:hlms_mobile/features/auth/ui/login_screen.dart';
 import 'package:hlms_mobile/features/auth/ui/register_screen.dart';
 import 'package:hlms_mobile/features/home/ui/main_navigation_screen.dart';
 import 'package:hlms_mobile/features/instructor/ui/instructor_main_screen.dart';
+import 'package:hlms_mobile/features/instructor/ui/instructor_students_screen.dart';
+import 'package:hlms_mobile/features/instructor/ui/instructor_submissions_screen.dart';
+import 'package:hlms_mobile/features/instructor/ui/instructor_discussions_screen.dart';
 import 'package:hlms_mobile/features/course/ui/course_detail_screen.dart';
 import 'package:hlms_mobile/features/learning/ui/lesson_screen.dart';
 import 'package:hlms_mobile/features/classroom/ui/assignment_list_screen.dart';
@@ -46,6 +49,18 @@ class AppRouter {
       GoRoute(
         path: '/instructor/home',
         builder: (context, state) => const InstructorMainScreen(),
+      ),
+      GoRoute(
+        path: '/instructor/students',
+        builder: (context, state) => const InstructorStudentsScreen(),
+      ),
+      GoRoute(
+        path: '/instructor/submissions',
+        builder: (context, state) => const InstructorSubmissionsScreen(),
+      ),
+      GoRoute(
+        path: '/instructor/discussions',
+        builder: (context, state) => const InstructorDiscussionsScreen(),
       ),
       GoRoute(
         path: '/onboarding',

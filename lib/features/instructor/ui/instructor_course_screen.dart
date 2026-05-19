@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/instructor/data/instructor_repository.dart';
 
 class InstructorCourseScreen extends StatefulWidget {
@@ -222,14 +223,28 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          // Manage course action
+                          final courseIdOrSlug = course['slug'] ?? course['id']?.toString() ?? '';
+                          if (courseIdOrSlug.isNotEmpty) {
+                            context.push('/course/$courseIdOrSlug');
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D47A1),
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           elevation: 0,
                         ),
-                        child: const Text('Kelola'),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.settings, size: 16, color: Colors.white),
+                            SizedBox(width: 6),
+                            Text(
+                              'Kelola',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
