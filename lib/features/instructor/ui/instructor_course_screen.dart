@@ -32,9 +32,26 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Kursus Saya',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(
+                'assets/app_icon.png',
+                height: 32,
+                width: 32,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Kursus Saya',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(

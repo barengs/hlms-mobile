@@ -105,9 +105,26 @@ class _InstructorRedeemScreenState extends State<InstructorRedeemScreen> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: const Text(
-              'Redeem & Payouts',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Image.asset(
+                    'assets/app_icon.png',
+                    height: 32,
+                    width: 32,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Redeem & Payouts',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ],
             ),
           ),
           body: SingleChildScrollView(
