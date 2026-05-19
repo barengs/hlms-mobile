@@ -3,6 +3,9 @@ import 'package:hlms_mobile/features/instructor/data/instructor_repository.dart'
 import 'instructor_dashboard_event.dart';
 import 'instructor_dashboard_state.dart';
 
+export 'instructor_dashboard_event.dart';
+export 'instructor_dashboard_state.dart';
+
 class InstructorDashboardBloc extends Bloc<InstructorDashboardEvent, InstructorDashboardState> {
   final InstructorRepository _instructorRepository;
 
