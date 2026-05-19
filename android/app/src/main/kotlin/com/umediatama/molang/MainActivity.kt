@@ -1,4 +1,4 @@
-package com.example.hlms_mobile
+package com.umediatama.molang
 
 import io.flutter.embedding.android.FlutterActivity
 
