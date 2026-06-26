@@ -54,7 +54,7 @@ class HomeScreenTab extends StatelessWidget {
                     const SizedBox(height: 32),
                   ],
                   if (state.recommendations.isNotEmpty) ...[
-                    _buildSectionHeader('Rekomendasi Untukmu', onSeeAll: () {}),
+                    _buildSectionHeader('Rekomendasi', onSeeAll: () {}),
                     const SizedBox(height: 20),
                     _buildPopularCourses(context, state.recommendations),
                     const SizedBox(height: 32),
@@ -81,13 +81,15 @@ class HomeScreenTab extends StatelessWidget {
         if (state is AuthAuthenticated) {
           name = state.user['name'] ?? 'User';
         }
-        
+
         return Row(
           children: [
             CircleAvatar(
               radius: 25,
               backgroundColor: Colors.blue.shade50,
-              backgroundImage: const NetworkImage('https://cdn-icons-png.flaticon.com/512/3135/3135715.png'),
+              backgroundImage: const NetworkImage(
+                'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -116,9 +118,17 @@ class HomeScreenTab extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.settings_outlined, color: Colors.grey.shade300, size: 30),
+            Icon(
+              Icons.settings_outlined,
+              color: Colors.grey.shade300,
+              size: 30,
+            ),
             const SizedBox(width: 12),
-            Icon(Icons.notifications_outlined, color: Colors.grey.shade300, size: 30),
+            Icon(
+              Icons.notifications_outlined,
+              color: Colors.grey.shade300,
+              size: 30,
+            ),
           ],
         );
       },
@@ -180,10 +190,14 @@ class HomeScreenTab extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(Icons.add_box_outlined, color: Colors.white, size: 28),
+            child: const Icon(
+              Icons.add_box_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -215,14 +229,16 @@ class HomeScreenTab extends StatelessWidget {
                     Navigator.pop(dialogContext);
                     context.read<HomeBloc>().add(HomeDataRequested());
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Berhasil bergabung dengan kelas!')),
+                      const SnackBar(
+                        content: Text('Berhasil bergabung dengan kelas!'),
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
                   }
                 }
               }
@@ -245,10 +261,7 @@ class HomeScreenTab extends StatelessWidget {
             child: Chip(
               label: Text(
                 name,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
               ),
               backgroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -267,22 +280,23 @@ class HomeScreenTab extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         TextButton(
           onPressed: onSeeAll,
           child: Text(
             'Lihat Semua',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade400,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade400),
           ),
         ),
       ],
@@ -321,7 +335,9 @@ class HomeScreenTab extends StatelessWidget {
                   Expanded(
                     flex: 5,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                       child: Image.network(
                         enrollment.thumbnail,
                         fit: BoxFit.cover,
@@ -329,7 +345,10 @@ class HomeScreenTab extends StatelessWidget {
                         height: double.infinity,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.grey.shade100,
-                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
@@ -354,14 +373,21 @@ class HomeScreenTab extends StatelessWidget {
                           ),
                           Row(
                             children: [
-                              const Icon(Icons.person_outline, size: 12, color: Colors.grey),
+                              const Icon(
+                                Icons.person_outline,
+                                size: 12,
+                                color: Colors.grey,
+                              ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   enrollment.instructor ?? "Instructor",
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 10,
+                                  ),
                                 ),
                               ),
                             ],
@@ -374,21 +400,32 @@ class HomeScreenTab extends StatelessWidget {
                                 child: LinearProgressIndicator(
                                   value: enrollment.progress / 100,
                                   backgroundColor: Colors.grey.shade100,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D47A1)),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF0D47A1),
+                                      ),
                                   minHeight: 6,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     'Progres',
-                                    style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 10,
+                                    ),
                                   ),
                                   Text(
                                     '${enrollment.progress}%',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF0D47A1)),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                      color: Color(0xFF0D47A1),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -456,18 +493,29 @@ class HomeScreenTab extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
                                 'KELAS AKTIF',
-                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             const Spacer(),
-                            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ],
                         ),
                         Column(
@@ -486,11 +534,18 @@ class HomeScreenTab extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, color: Colors.white70, size: 12),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.white70,
+                                  size: 12,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Enrolled at ${enrollment.enrolledAt != null ? enrollment.enrolledAt!.toString().substring(0, 10) : "-"}',
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -508,7 +563,10 @@ class HomeScreenTab extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularCourses(BuildContext context, List<Course> latestCourses) {
+  Widget _buildPopularCourses(
+    BuildContext context,
+    List<Course> latestCourses,
+  ) {
     return Column(
       children: latestCourses.map((course) {
         return GestureDetector(
@@ -541,7 +599,10 @@ class HomeScreenTab extends StatelessWidget {
                       width: 80,
                       height: 80,
                       color: Colors.grey.shade100,
-                      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 ),
@@ -554,19 +615,27 @@ class HomeScreenTab extends StatelessWidget {
                         course.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Oleh ${course.instructorName ?? "Instructor"}',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            course.price != null ? 'Rp ${course.price?.toInt()}' : 'Free',
+                            course.price != null
+                                ? 'Rp ${course.price?.toInt()}'
+                                : 'Free',
                             style: const TextStyle(
                               color: Color(0xFF0D47A1),
                               fontWeight: FontWeight.bold,
@@ -574,11 +643,18 @@ class HomeScreenTab extends StatelessWidget {
                           ),
                           Row(
                             children: [
-                              const Icon(Icons.star, color: Colors.orange, size: 14),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.orange,
+                                size: 14,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${course.rating ?? 0} (${course.totalEnrollments ?? 0})',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),

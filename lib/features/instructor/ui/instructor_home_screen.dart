@@ -49,7 +49,27 @@ class InstructorHomeScreen extends StatelessWidget {
           if (state is InstructorDashboardLoading || state is InstructorDashboardInitial) {
             return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
           } else if (state is InstructorDashboardError) {
-            return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<InstructorDashboardBloc>().add(InstructorDashboardRequested());
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
           } else if (state is InstructorDashboardLoaded) {
             final data = state.dashboardData;
             final stats = data['stats'] ?? {};
@@ -133,18 +153,18 @@ class InstructorHomeScreen extends StatelessWidget {
           onTap: () => onTabChange?.call(1),
         ),
         _buildStatCard(
+          title: 'Total Kelas',
+          value: '${stats['total_batches'] ?? 0}',
+          icon: Icons.class_,
+          color: Colors.purple,
+          onTap: () => onTabChange?.call(2),
+        ),
+        _buildStatCard(
           title: 'Pendapatan Bulan Ini',
           value: 'Rp ${_formatCurrency(stats['monthly_revenue'] ?? 0)}',
           icon: Icons.monetization_on,
           color: Colors.green,
-          onTap: () => onTabChange?.call(2),
-        ),
-        _buildStatCard(
-          title: 'Rating Rata-rata',
-          value: '${stats['average_rating'] ?? 0.0}',
-          icon: Icons.star,
-          color: Colors.amber,
-          onTap: () => onTabChange?.call(1),
+          onTap: () => onTabChange?.call(3),
         ),
       ],
     );

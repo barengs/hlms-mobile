@@ -137,8 +137,8 @@ class _InstructorSubmissionsScreenState extends State<InstructorSubmissionsScree
 
   Widget _buildSubmissionCard(Map<String, dynamic> sub, bool isPendingTab) {
     final assignmentTitle = sub['assignment']?['title'] ?? 'Tugas';
-    final studentName = sub['user']?['name'] ?? 'Siswa';
-    final studentAvatar = sub['user']?['profile']?['avatar'] ?? '';
+    final studentName = sub['student']?['name'] ?? sub['user']?['name'] ?? 'Siswa';
+    final studentAvatar = sub['student']?['avatar'] ?? sub['user']?['profile']?['avatar'] ?? '';
     final submittedAtStr = sub['submitted_at'] ?? sub['created_at'] ?? '';
     final status = sub['status'] ?? 'submitted';
 
@@ -234,15 +234,21 @@ class _InstructorSubmissionsScreenState extends State<InstructorSubmissionsScree
   }
 
   void _showGradingBottomSheet(Map<String, dynamic> sub, bool isPendingTab) {
-    final submissionId = sub['id'] as int;
+    final submissionId = sub['id'] is String ? int.parse(sub['id']) : sub['id'] as int;
     final assignmentTitle = sub['assignment']?['title'] ?? 'Tugas';
-    final studentName = sub['user']?['name'] ?? 'Siswa';
+    final studentName = sub['student']?['name'] ?? sub['user']?['name'] ?? 'Siswa';
     final content = sub['content'] ?? '';
-    final filePath = sub['file_path'] ?? '';
-    final maxPoints = (sub['assignment']?['max_points'] ?? 100.0) as double;
+    
+    String filePath = sub['file_path'] ?? '';
+    if (sub['files'] != null && sub['files'] is List && (sub['files'] as List).isNotEmpty) {
+      filePath = sub['files'][0]['url'] ?? sub['files'][0]['path'] ?? sub['files'][0] ?? '';
+    }
+    
+    final maxPoints = (sub['assignment']?['max_points'] as num?)?.toDouble() ?? 100.0;
 
     final pointsController = TextEditingController(text: sub['points_awarded']?.toString() ?? '');
     final feedbackController = TextEditingController(text: sub['instructor_feedback'] ?? '');
+    String aiFeedbackText = sub['ai_feedback'] ?? '';
     bool isAiLoading = false;
 
     showModalBottomSheet(
@@ -374,10 +380,8 @@ class _InstructorSubmissionsScreenState extends State<InstructorSubmissionsScree
                                       if (aiResult['points_awarded'] != null) {
                                         pointsController.text = aiResult['points_awarded'].toString();
                                       }
-                                      if (aiResult['instructor_feedback'] != null) {
-                                        feedbackController.text = aiResult['instructor_feedback'].toString();
-                                      } else if (aiResult['ai_feedback'] != null) {
-                                        feedbackController.text = aiResult['ai_feedback'].toString();
+                                      if (aiResult['ai_feedback'] != null) {
+                                        aiFeedbackText = aiResult['ai_feedback'].toString();
                                       }
                                     });
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -393,10 +397,11 @@ class _InstructorSubmissionsScreenState extends State<InstructorSubmissionsScree
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple.shade700,
+                            backgroundColor: const Color(0xFF6366F1), // Indigo color for AI
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
                           ),
                           icon: isAiLoading
                               ? const SizedBox(
@@ -405,10 +410,45 @@ class _InstructorSubmissionsScreenState extends State<InstructorSubmissionsScree
                                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                 )
                               : const Icon(Icons.auto_awesome, size: 18),
-                          label: const Text('Nilai AI', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: const Text('Nilai via AI', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
+                    if (aiFeedbackText.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFEEF2FF), Color(0xFFE0E7FF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFC7D2FE)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.auto_awesome, color: Color(0xFF4F46E5), size: 16),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Feedback AI',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF312E81), fontSize: 14),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              aiFeedbackText,
+                              style: const TextStyle(color: Color(0xFF3730A3), fontSize: 13, height: 1.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     TextField(
                       controller: feedbackController,

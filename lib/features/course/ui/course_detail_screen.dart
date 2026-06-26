@@ -5,6 +5,7 @@ import 'package:hlms_mobile/core/models/course.dart';
 import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
 import 'package:hlms_mobile/features/course/logic/course_detail_bloc/course_detail_bloc.dart';
+import 'package:hlms_mobile/features/course/ui/review_submit_dialog.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final String courseId;
@@ -74,15 +75,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                         controller: _tabController,
                         children: [
                           _buildOverviewTab(course, isEnrolled),
-                          _buildLessonsTab(course),
-                          _buildReviewsTab(),
+                          _buildLessonsTab(context, course),
+                          _buildReviewsTab(course),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              bottomNavigationBar: isInstructor ? null : _buildBottomEnrollButton(course, isEnrolled),
+              bottomNavigationBar: isInstructor ? null : _buildBottomEnrollButton(context, course, isEnrolled),
             );
           }
 
@@ -302,7 +303,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildLessonsTab(Course course) {
+  Widget _buildLessonsTab(BuildContext context, Course course) {
     // Note: Course model needs to have sections/lessons if they are in the response
     // For now, I'll assume they are in course.sections
     final sections = (course as dynamic).sections as List? ?? [];
@@ -334,11 +335,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                     color: lesson['type'] == 'quiz_v2' 
                         ? Colors.orange 
                         : (isCompleted ? Colors.green : const Color(0xFF003399)),
-                    onTap: () {
+                    onTap: () async {
                       if (lesson['type'] == 'quiz_v2') {
-                        context.push('/quiz-v2/${lesson['id']}');
+                        await context.push('/quiz-v2/${lesson['id']}');
                       } else {
-                        context.push('/lesson/${course.slug}/${lesson['id']}');
+                        await context.push('/lesson/${course.slug}/${lesson['id']}');
+                      }
+                      if (context.mounted) {
+                        context.read<CourseDetailBloc>().add(CourseDetailRequested(widget.courseId));
                       }
                     },
                   ),
@@ -348,8 +352,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                       isQuiz ? Icons.quiz : Icons.assignment,
                       isQuiz ? 'Kuis: ${assignment['title']}' : 'Tugas: ${assignment['title']}',
                       color: isQuiz ? Colors.orange : Colors.green,
-                      onTap: () {
-                        context.push(isQuiz ? '/quiz/${assignment['id']}' : '/assignment/upload/${assignment['id']}');
+                      onTap: () async {
+                        await context.push(isQuiz ? '/quiz/${assignment['id']}' : '/assignment/upload/${assignment['id']}');
+                        if (context.mounted) {
+                          context.read<CourseDetailBloc>().add(CourseDetailRequested(widget.courseId));
+                        }
                       },
                     );
                   }),
@@ -403,69 +410,149 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
     );
   }
 
-  Widget _buildReviewsTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(24),
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 24),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(color: Colors.grey.shade100),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.grey.shade200,
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Muhammad Arsalan', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Siswa', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
+  Widget _buildReviewsTab(Course course) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: context.read<CourseRepository>().getCourseReviews(course.slug),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text(snapshot.error.toString()));
+        }
+
+        final reviews = snapshot.data ?? [];
+
+        return Column(
+          children: [
+            if (course.canReview)
+              Padding(
+                padding: const EdgeInsets.all(24.0).copyWith(bottom: 0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => ReviewSubmitDialog(
+                          courseSlug: course.slug,
+                          onSuccess: () {
+                            // Refresh reviews by triggering bloc request again
+                            context.read<CourseDetailBloc>().add(CourseDetailRequested(course.slug));
+                          },
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review),
+                    label: const Text('Tulis Ulasan Anda'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF003399),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
-                  const Row(
-                    children: [
-                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
-                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
-                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
-                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
-                      Icon(Icons.star, color: Color(0xFF003399), size: 14),
-                    ],
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Lorem ipsum dolor sit amet consectetur. Euismod turpis tortor sollicitudin et. Quam tempor tincidunt a nunc feugiat semper tristique id.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
-              ),
-            ],
-          ),
+            Expanded(
+              child: reviews.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.star_border, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'Belum ada ulasan',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Kursus ini belum memiliki ulasan dari siswa.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(24),
+                      itemCount: reviews.length,
+                      itemBuilder: (context, index) {
+                        final review = reviews[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.grey.shade100),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Colors.grey.shade200,
+                                    backgroundImage: review['user_avatar'] != null
+                                        ? NetworkImage(review['user_avatar'])
+                                        : null,
+                                    child: review['user_avatar'] == null
+                                        ? const Icon(Icons.person, color: Colors.grey)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(review['user_name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        const Text('Siswa', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  Row(
+                                    children: List.generate(5, (starIndex) {
+                                      return Icon(
+                                        starIndex < (review['rating'] as int)
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color: Colors.amber,
+                                        size: 14,
+                                      );
+                                    }),
+                                  ),
+                                ],
+                              ),
+                              if (review['comment'] != null && review['comment'].isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  review['comment'],
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildBottomEnrollButton(Course course, bool isEnrolled) {
+  Widget _buildBottomEnrollButton(BuildContext context, Course course, bool isEnrolled) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -519,17 +606,25 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> with SingleTick
                   final isQuiz = targetLesson['type'] == 'quiz';
                   final isAssignment = targetLesson['type'] == 'assignment';
                   
-                  if (isQuiz) {
-                    if (targetLesson['type'] == 'quiz_v2') {
-                      context.push('/quiz-v2/${targetLesson['id']}');
+                  Future<void> navigate() async {
+                    if (isQuiz) {
+                      if (targetLesson!['type'] == 'quiz_v2') {
+                        await context.push('/quiz-v2/${targetLesson['id']}');
+                      } else {
+                        await context.push('/quiz/${targetLesson['id']}');
+                      }
+                    } else if (isAssignment) {
+                      await context.push('/assignment/upload/${targetLesson!['id']}');
                     } else {
-                      context.push('/quiz/${targetLesson['id']}');
+                      await context.push('/lesson/${course.slug}/${targetLesson!['id']}');
                     }
-                  } else if (isAssignment) {
-                    context.push('/assignment/upload/${targetLesson['id']}');
-                  } else {
-                    context.push('/lesson/${course.slug}/${targetLesson['id']}');
                   }
+                  
+                  navigate().then((_) {
+                    if (context.mounted) {
+                      context.read<CourseDetailBloc>().add(CourseDetailRequested(widget.courseId));
+                    }
+                  });
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Belum ada materi tersedia untuk kursus ini.'))

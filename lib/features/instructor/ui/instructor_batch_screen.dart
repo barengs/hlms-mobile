@@ -3,25 +3,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/instructor/data/instructor_repository.dart';
 
-class InstructorCourseScreen extends StatefulWidget {
-  const InstructorCourseScreen({super.key});
+class InstructorBatchScreen extends StatefulWidget {
+  const InstructorBatchScreen({super.key});
 
   @override
-  State<InstructorCourseScreen> createState() => _InstructorCourseScreenState();
+  State<InstructorBatchScreen> createState() => _InstructorBatchScreenState();
 }
 
-class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
-  late Future<List<dynamic>> _coursesFuture;
+class _InstructorBatchScreenState extends State<InstructorBatchScreen> {
+  late Future<List<dynamic>> _batchesFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadCourses();
+    _loadBatches();
   }
 
-  void _loadCourses() {
+  void _loadBatches() {
     setState(() {
-      _coursesFuture = context.read<InstructorRepository>().getCourses();
+      _batchesFuture = context.read<InstructorRepository>().getBatches();
     });
   }
 
@@ -40,7 +40,7 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
             ),
             const SizedBox(width: 10),
             const Text(
-              'Kursus Saya',
+              'Kelas Saya',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
@@ -53,17 +53,17 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
           IconButton(
             icon: const Icon(Icons.add, color: Color(0xFF0D47A1), size: 28),
             onPressed: () {
-              // Add Course placeholder
+              // Add Batch placeholder
             },
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          _loadCourses();
+          _loadBatches();
         },
         child: FutureBuilder<List<dynamic>>(
-          future: _coursesFuture,
+          future: _batchesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -89,7 +89,7 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _loadCourses,
+                        onPressed: _loadBatches,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0D47A1),
                         ),
@@ -104,14 +104,10 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.menu_book,
-                      size: 80,
-                      color: Colors.grey.shade300,
-                    ),
+                    Icon(Icons.class_, size: 80, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
                     const Text(
-                      'Belum ada kursus yang dibuat',
+                      'Belum ada kelas yang dibuat',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -124,20 +120,20 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0D47A1),
                       ),
-                      child: const Text('Buat Kursus Pertama'),
+                      child: const Text('Buat Kelas Pertama'),
                     ),
                   ],
                 ),
               );
             }
 
-            final courses = snapshot.data!;
+            final batches = snapshot.data!;
             return ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: courses.length,
+              itemCount: batches.length,
               itemBuilder: (context, index) {
-                final course = courses[index];
-                return _buildCourseCard(course);
+                final batch = batches[index];
+                return _buildBatchCard(batch);
               },
             );
           },
@@ -146,12 +142,18 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
     );
   }
 
-  Widget _buildCourseCard(Map<String, dynamic> course) {
-    final category = course['category']?['name'] ?? 'General';
-    final sectionsCount = course['sections_count'] ?? 0;
-    final lessonsCount = course['lessons_count'] ?? 0;
-    final revenue = course['revenue'] ?? 0;
-    final status = course['status'] ?? 'draft';
+  Widget _buildBatchCard(Map<String, dynamic> batch) {
+    final status = batch['status'] ?? 'draft';
+    final studentsCount = batch['students_count'] ?? 0;
+
+    // We can show the first course's thumbnail if batch has no thumbnail (or if batch thumbnail is not available)
+    final courses = batch['courses'] as List<dynamic>? ?? [];
+    String? thumbnail;
+    if (batch['thumbnail'] != null) {
+      thumbnail = batch['thumbnail'];
+    } else if (courses.isNotEmpty && courses.first['thumbnail'] != null) {
+      thumbnail = courses.first['thumbnail'];
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -171,63 +173,39 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail / Status
             Stack(
               children: [
                 Container(
                   height: 160,
                   width: double.infinity,
                   color: Colors.grey.shade200,
-                  child: course['thumbnail'] != null
+                  child: thumbnail != null
                       ? Image.network(
-                          course['thumbnail'],
+                          thumbnail,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               const Icon(
-                                Icons.school,
+                                Icons.class_,
                                 size: 60,
                                 color: Colors.grey,
                               ),
                         )
-                      : const Icon(Icons.school, size: 60, color: Colors.grey),
+                      : const Icon(Icons.class_, size: 60, color: Colors.grey),
                 ),
                 Positioned(
                   top: 12,
                   right: 12,
                   child: _buildStatusBadge(status),
                 ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      category,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
-            // Details
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    course['title'] ?? 'Tanpa Judul',
+                    batch['name'] ?? 'Tanpa Nama',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -239,28 +217,20 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.folder_open,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
+                      const Icon(Icons.people, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        '$sectionsCount Bagian',
+                        '$studentsCount Siswa',
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 13,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(
-                        Icons.play_circle_outline,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
+                      const Icon(Icons.book, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        '$lessonsCount Materi',
+                        '${courses.length} Kursus',
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 13,
@@ -270,32 +240,13 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
                   ),
                   const Divider(height: 24),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Total Pendapatan',
-                            style: TextStyle(color: Colors.grey, fontSize: 11),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Rp ${_formatCurrency(revenue)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
                       ElevatedButton(
                         onPressed: () {
-                          final courseIdOrSlug =
-                              course['slug'] ?? course['id']?.toString() ?? '';
-                          if (courseIdOrSlug.isNotEmpty) {
-                            context.push('/course/$courseIdOrSlug');
+                          final batchId = batch['id']?.toString() ?? '';
+                          if (batchId.isNotEmpty) {
+                            context.push('/classroom/$batchId');
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -337,13 +288,15 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
     String label;
 
     switch (status.toLowerCase()) {
-      case 'published':
+      case 'open':
+      case 'in_progress':
+      case 'active':
         color = Colors.green;
-        label = 'PUBLISHED';
+        label = status.toUpperCase();
         break;
-      case 'pending_review':
-        color = Colors.orange;
-        label = 'PENDING';
+      case 'completed':
+        color = Colors.blue;
+        label = 'COMPLETED';
         break;
       case 'draft':
       default:
@@ -367,14 +320,6 @@ class _InstructorCourseScreenState extends State<InstructorCourseScreen> {
           letterSpacing: 0.5,
         ),
       ),
-    );
-  }
-
-  String _formatCurrency(dynamic amount) {
-    if (amount == null) return '0';
-    return amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
     );
   }
 }

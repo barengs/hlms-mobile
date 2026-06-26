@@ -63,4 +63,29 @@ class ClassroomRepository {
       throw Exception(e.response?.data['message'] ?? 'Gagal memperbarui status');
     }
   }
+
+  Future<void> createDiscussion(int classId, String title, String content, String type) async {
+    try {
+      await _apiClient.dio.post('discussions', data: {
+        'batch_id': classId,
+        'title': title,
+        'content': content,
+        'type': type,
+      });
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal membuat diskusi');
+    }
+  }
+
+  Future<void> replyToDiscussion(int parentId, String content) async {
+    try {
+      await _apiClient.dio.post('discussions', data: {
+        'parent_id': parentId,
+        'content': content,
+        'type': 'discussion',
+      });
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal membalas diskusi');
+    }
+  }
 }

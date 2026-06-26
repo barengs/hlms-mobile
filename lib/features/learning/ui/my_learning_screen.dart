@@ -34,7 +34,9 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -53,7 +55,10 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Belajar Saya', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Kursus Saya',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
@@ -62,14 +67,14 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
             unselectedLabelColor: Colors.grey,
             indicatorColor: Color(0xFF0D47A1),
             tabs: [
-              Tab(text: 'Mandiri (Udemy)'),
-              Tab(text: 'Kelas (Classroom)'),
+              Tab(text: 'Mandiri'),
+              Tab(text: 'Kelas'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _SelfPacedTab(enrollments: courses),
+            _SelfPacedTab(enrollments: courses, onRefresh: _loadData),
             _CohortClassTab(enrollments: classes, onRefresh: _loadData),
           ],
         ),
@@ -80,33 +85,48 @@ class _MyLearningScreenState extends State<MyLearningScreen> {
 
 class _SelfPacedTab extends StatelessWidget {
   final List<Enrollment> enrollments;
-  const _SelfPacedTab({required this.enrollments});
+  final VoidCallback onRefresh;
+  const _SelfPacedTab({required this.enrollments, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
-    if (enrollments.isEmpty) {
-      return const Center(child: Text('Belum ada kursus mandiri.'));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: enrollments.length,
-      itemBuilder: (context, index) {
-        final enrollment = enrollments[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildSelfPacedCard(
-            context,
-            enrollment: enrollment,
-          ),
-        );
+    return RefreshIndicator(
+      onRefresh: () async {
+        onRefresh();
       },
+      child: enrollments.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: const Center(child: Text('Belum ada kursus mandiri.')),
+                ),
+              ],
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: enrollments.length,
+              itemBuilder: (context, index) {
+                final enrollment = enrollments[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildSelfPacedCard(context, enrollment: enrollment),
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildSelfPacedCard(BuildContext context, {required Enrollment enrollment}) {
+  Widget _buildSelfPacedCard(
+    BuildContext context, {
+    required Enrollment enrollment,
+  }) {
     return InkWell(
-      onTap: () {
-        context.push('/course/${enrollment.slug}?enrolled=true');
+      onTap: () async {
+        await context.push('/course/${enrollment.slug}?enrolled=true');
+        onRefresh();
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -119,15 +139,18 @@ class _SelfPacedTab extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                enrollment.thumbnail, 
-                width: 80, 
-                height: 80, 
+                enrollment.thumbnail,
+                width: 80,
+                height: 80,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: 80,
                   height: 80,
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ),
@@ -136,9 +159,20 @@ class _SelfPacedTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(enrollment.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    enrollment.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(enrollment.instructor ?? "Instructor", style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  Text(
+                    enrollment.instructor ?? "Instructor",
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -152,7 +186,13 @@ class _SelfPacedTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text('${enrollment.progress}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${enrollment.progress}%',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -172,44 +212,50 @@ class _CohortClassTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            onPressed: () {
-              _showJoinClassDialog(context);
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Gabung dengan Kode Kelas'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 50),
-              backgroundColor: Colors.blue.shade50,
-              foregroundColor: const Color(0xFF0D47A1),
-              elevation: 0,
+    return RefreshIndicator(
+      onRefresh: () async {
+        onRefresh();
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _showJoinClassDialog(context);
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Gabung dengan Kode Kelas'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+                backgroundColor: Colors.blue.shade50,
+                foregroundColor: const Color(0xFF0D47A1),
+                elevation: 0,
+              ),
             ),
           ),
-        ),
-        if (enrollments.isEmpty)
-          const Expanded(child: Center(child: Text('Belum ada kelas yang diikuti.'))),
-        if (enrollments.isNotEmpty)
-          Expanded(
-            child: ListView.builder(
+          if (enrollments.isEmpty)
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: const Center(child: Text('Belum ada kelas yang diikuti.')),
+            ),
+          if (enrollments.isNotEmpty)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: enrollments.length,
               itemBuilder: (context, index) {
                 final enrollment = enrollments[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildClassCard(
-                    context,
-                    enrollment: enrollment,
-                  ),
+                  child: _buildClassCard(context, enrollment: enrollment),
                 );
               },
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -223,35 +269,54 @@ class _CohortClassTab extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Masukkan kode kelas dari instruktur Anda.', style: TextStyle(color: Colors.grey)),
+            const Text(
+              'Masukkan kode kelas dari instruktur Anda.',
+              style: TextStyle(color: Colors.grey),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: codeController,
               decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 hintText: 'Contoh: X7Y9ZQ',
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
             onPressed: () async {
               try {
-                await context.read<ClassroomRepository>().joinClass(codeController.text);
+                await context.read<ClassroomRepository>().joinClass(
+                  codeController.text,
+                );
                 if (context.mounted) {
                   context.pop();
                   onRefresh();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berhasil bergabung dengan kelas!')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Berhasil bergabung dengan kelas!'),
+                    ),
+                  );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D47A1),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Gabung'),
           ),
         ],
@@ -259,7 +324,10 @@ class _CohortClassTab extends StatelessWidget {
     );
   }
 
-  Widget _buildClassCard(BuildContext context, {required Enrollment enrollment}) {
+  Widget _buildClassCard(
+    BuildContext context, {
+    required Enrollment enrollment,
+  }) {
     return InkWell(
       onTap: () {
         context.push('/classroom/${enrollment.id}');
@@ -274,10 +342,13 @@ class _CohortClassTab extends StatelessWidget {
                 child: Image.network(
                   enrollment.thumbnail,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF0D47A1)),
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: const Color(0xFF0D47A1)),
                 ),
               ),
-              Positioned.fill(child: Container(color: Colors.black.withOpacity(0.6))),
+              Positioned.fill(
+                child: Container(color: Colors.black.withOpacity(0.6)),
+              ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -287,26 +358,46 @@ class _CohortClassTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                          child: const Text('Aktif', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Aktif',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const Icon(Icons.class_outlined, color: Colors.white70),
                       ],
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      enrollment.title, 
+                      enrollment.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      enrollment.instructor ?? "Instructor", 
+                      enrollment.instructor ?? "Instructor",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12)
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),

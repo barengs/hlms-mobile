@@ -195,7 +195,9 @@ class CourseRepository {
         throw Exception(response.data['message'] ?? 'Gagal mengumpulkan tugas');
       }
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Terjadi kesalahan saat mengumpulkan tugas');
+      final data = e.response?.data;
+      final message = (data is Map) ? data['message'] : null;
+      throw Exception(message ?? 'Terjadi kesalahan saat mengumpulkan tugas');
     }
   }
   Future<Map<String, dynamic>> submitQuiz({
@@ -271,6 +273,37 @@ class CourseRepository {
       }
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat rekomendasi');
+    }
+  }
+  Future<List<Map<String, dynamic>>> getCourseReviews(String slug) async {
+    try {
+      final response = await _apiClient.dio.get('mobile/student/courses/$slug/reviews');
+      if (response.statusCode == 200) {
+        final List data = response.data['data'];
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Gagal memuat ulasan');
+      }
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map) ? data['message'] : null;
+      throw Exception(message ?? 'Terjadi kesalahan jaringan');
+    }
+  }
+
+  Future<void> submitCourseReview(String slug, int rating, String comment) async {
+    try {
+      await _apiClient.dio.post(
+        'mobile/student/courses/$slug/reviews',
+        data: {
+          'rating': rating,
+          'comment': comment,
+        },
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = (data is Map) ? data['message'] : null;
+      throw Exception(message ?? 'Gagal mengirim ulasan');
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hlms_mobile/features/course/data/course_repository.dart';
+import 'package:hlms_mobile/features/auth/logic/auth_bloc/auth_bloc.dart';
 
 class AssignmentUploadScreen extends StatefulWidget {
   final int assignmentId;
@@ -124,13 +125,13 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _submitMessage = result['message'] as String?;
-          _submitMeta = result['meta'] as Map<String, dynamic>?;
+          _submitMessage = result['message']?.toString();
+          _submitMeta = result['meta'] != null ? Map<String, dynamic>.from(result['meta'] as Map) : null;
           // Update assignment data with new submission from result
           if (result['data'] != null) {
             _assignmentData = {
               ..._assignmentData ?? {},
-              'my_submission': result['data'],
+              'my_submission': result['data'] != null ? Map<String, dynamic>.from(result['data'] as Map) : null,
             };
           }
         });
@@ -195,6 +196,13 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
     final aiStatus = (_submitMeta?['ai_status'] ?? submission?['ai_status']) as String?;
     final isGraded = submissionStatus == 'graded' || submissionStatus == 'reviewed';
     final hasSubmitted = submission != null || _submitMeta != null;
+
+    final authState = context.read<AuthBloc>().state;
+    bool isInstructor = false;
+    if (authState is AuthAuthenticated) {
+      final roles = authState.user['roles'] as List<dynamic>?;
+      isInstructor = roles?.any((role) => role['name'] == 'instructor') ?? false;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -278,9 +286,10 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
 
             const SizedBox(height: 32),
 
-            // --- TEXT ANSWER ---
-            const Text('Teks Jawaban (Opsional)',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            if (!isInstructor) ...[
+              // --- TEXT ANSWER ---
+              const Text('Teks Jawaban (Opsional)',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: _contentController,
@@ -387,6 +396,7 @@ class _AssignmentUploadScreenState extends State<AssignmentUploadScreen>
                         ),
                       ),
               ),
+            ],
           ],
         ),
       ),

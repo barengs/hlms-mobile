@@ -27,9 +27,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: _pages[_currentIndex],
-      ),
+      body: SafeArea(child: _pages[_currentIndex]),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -59,8 +57,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.psychology_outlined, size: 30),
-              label: 'Learning',
+              icon: Icon(Icons.book_outlined, size: 30),
+              label: 'Course',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.chat_bubble_outline, size: 30),

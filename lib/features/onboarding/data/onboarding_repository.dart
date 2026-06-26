@@ -15,12 +15,18 @@ class OnboardingRepository {
     }
   }
 
-  Future<void> submitOnboarding(List<Map<String, dynamic>> answers) async {
+  Future<List<dynamic>> submitOnboarding(List<Map<String, dynamic>> answers) async {
     try {
       final response = await _apiClient.dio.post('mobile/student/onboarding/submit', data: {
         'answers': answers,
       });
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data['data'];
+        if (data != null && data['courses'] is List) {
+           return data['courses'] as List<dynamic>;
+        }
+        return [];
+      } else {
         throw Exception(response.data['message'] ?? 'Gagal menyimpan minat');
       }
     } on DioException catch (e) {

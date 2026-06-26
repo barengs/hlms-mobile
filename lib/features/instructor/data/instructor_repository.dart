@@ -42,6 +42,26 @@ class InstructorRepository {
     }
   }
 
+  Future<List<dynamic>> getBatches() async {
+    try {
+      final response = await _apiClient.dio.get('classes');
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data is Map && data['items'] != null) {
+          return data['items'] as List<dynamic>;
+        } else if (data is List) {
+          return data;
+        }
+        return [];
+      } else {
+        throw Exception(response.data['message'] ?? 'Gagal memuat daftar kelas');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
   Future<List<dynamic>> getPayouts() async {
     try {
       final response = await _apiClient.dio.get('instructor/payouts');
@@ -200,6 +220,34 @@ class InstructorRepository {
       );
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(response.data['message'] ?? 'Gagal mengirim balasan');
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';
+      throw Exception(message);
+    }
+  }
+
+  Future<void> createDiscussion({
+    int? batchId,
+    required String title,
+    required String content,
+    required String type,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        'title': title,
+        'content': content,
+        'type': type,
+      };
+      if (batchId != null) {
+        data['batch_id'] = batchId;
+      }
+      final response = await _apiClient.dio.post(
+        'discussions',
+        data: data,
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(response.data['message'] ?? 'Gagal membuat diskusi');
       }
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Terjadi kesalahan jaringan';

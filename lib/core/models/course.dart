@@ -15,6 +15,8 @@ class Course {
   final List<dynamic>? requirements;
   final List<dynamic>? outcomes;
   final bool isEnrolled;
+  final bool canReview;
+  final bool isCompleted;
 
   Course({
     required this.id,
@@ -33,6 +35,8 @@ class Course {
     this.requirements,
     this.outcomes,
     this.isEnrolled = false,
+    this.canReview = false,
+    this.isCompleted = false,
   });
 
   factory Course.fromJson(Map<String, dynamic> json, [Map<String, dynamic>? meta]) {
@@ -53,6 +57,8 @@ class Course {
       requirements: json['requirements'] is String ? [json['requirements']] : json['requirements'],
       outcomes: json['outcomes'] is String ? [json['outcomes']] : json['outcomes'],
       isEnrolled: meta?['is_enrolled'] ?? false,
+      canReview: json['can_review'] ?? false,
+      isCompleted: json['is_completed'] ?? false,
     );
   }
 }

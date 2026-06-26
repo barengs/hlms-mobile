@@ -22,6 +22,9 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
     _loadData();
   }
 
@@ -132,6 +135,13 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
           ],
         ),
       ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              onPressed: () => _showCreateDiscussionBottomSheet(),
+              backgroundColor: const Color(0xFF0D47A1),
+              child: const Icon(Icons.add_comment, color: Colors.white),
+            )
+          : null,
     );
   }
 
@@ -158,7 +168,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
           right: -50,
           child: CircleAvatar(
             radius: 100,
-            backgroundColor: Colors.white.withOpacity(0.05),
+            backgroundColor: Colors.white.withValues(alpha: 0.05),
           ),
         ),
         // Content
@@ -198,7 +208,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
                   description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -260,43 +270,47 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: Colors.grey.shade200),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
-                      backgroundImage: author?['avatar'] != null ? NetworkImage(author['avatar']) : null,
-                      child: author?['avatar'] == null ? const Icon(Icons.person, size: 20, color: Color(0xFF0D47A1)) : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            author?['name'] ?? 'Instruktur',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            date != null ? date.toString().split('T')[0] : 'Baru saja',
-                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-                          ),
-                        ],
+          child: InkWell(
+            onTap: () => _showDiscussionBottomSheet(item),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
+                        backgroundImage: author?['avatar'] != null ? NetworkImage(author['avatar']) : null,
+                        child: author?['avatar'] == null ? const Icon(Icons.person, size: 20, color: Color(0xFF0D47A1)) : null,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  item['content'] ?? '',
-                  style: const TextStyle(height: 1.5),
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              author?['name'] ?? 'Instruktur',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              date != null ? date.toString().split('T')[0] : 'Baru saja',
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    item['content'] ?? '',
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -466,7 +480,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
                             Expanded(
                               child: Container(
                                 width: 2,
-                                color: const Color(0xFF0D47A1).withOpacity(0.2),
+                                color: const Color(0xFF0D47A1).withValues(alpha: 0.2),
                               ),
                             )
                           else
@@ -490,7 +504,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
                   ],
                 ),
               );
-            }).toList(),
+            }),
             
             const SizedBox(height: 16),
           ],
@@ -503,16 +517,16 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCompleted ? Colors.green.withOpacity(0.05) : Colors.white,
+        color: isCompleted ? Colors.green.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCompleted 
-              ? Colors.green.withOpacity(0.2) 
+              ? Colors.green.withValues(alpha: 0.2) 
               : Colors.grey.shade200,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -526,7 +540,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getColorForType(type).withOpacity(0.1),
+                  color: _getColorForType(type).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -543,7 +557,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
@@ -698,7 +712,7 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: const Color(0xFF0D47A1).withOpacity(0.1),
+            backgroundColor: const Color(0xFF0D47A1).withValues(alpha: 0.1),
             backgroundImage: avatar != null ? NetworkImage(avatar) : null,
             child: avatar == null ? const Icon(Icons.person, color: Color(0xFF0D47A1)) : null,
           ),
@@ -842,6 +856,309 @@ class _ClassroomScreenState extends State<ClassroomScreen> with SingleTickerProv
           ],
         ),
       ),
+    );
+  }
+
+  void _showCreateDiscussionBottomSheet() {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 24,
+          right: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Buat Diskusi',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: 'Judul Diskusi',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: TextField(
+                controller: contentController,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                  hintText: 'Isi diskusi...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final title = titleController.text.trim();
+                  final content = contentController.text.trim();
+                  if (title.isEmpty || content.isEmpty) return;
+
+                  try {
+                    await context.read<ClassroomRepository>().createDiscussion(
+                          widget.classId,
+                          title,
+                          content,
+                          'discussion',
+                        );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      _loadData();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Diskusi berhasil dibuat!')),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal: ${e.toString().replaceAll('Exception: ', '')}')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0D47A1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Kirim', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDiscussionBottomSheet(Map<String, dynamic> disc) {
+    final parentId = disc['id'] as int;
+    final title = disc['title'] ?? 'Diskusi';
+    final content = disc['content'] ?? '';
+    final studentName = disc['user']?['name'] ?? 'Siswa';
+    final replies = List<dynamic>.from(disc['replies'] ?? []);
+    final replyController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Dari: $studentName', style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Text(
+                      content,
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Balasan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: replies.isEmpty
+                        ? const Center(
+                            child: Text('Belum ada balasan.',
+                                style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          )
+                        : ListView.builder(
+                            itemCount: replies.length,
+                            itemBuilder: (context, index) {
+                              final reply = replies[index];
+                              final rUser = reply['user']?['name'] ?? 'Pengguna';
+                              final rContent = reply['content'] ?? '';
+                              final rAvatar = reply['user']?['avatar'] ?? '';
+                              final rCreatedAtStr = reply['created_at'] ?? '';
+
+                              String rDate = '';
+                              if (rCreatedAtStr.isNotEmpty) {
+                                try {
+                                  final date = DateTime.parse(rCreatedAtStr);
+                                  rDate = '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                                } catch (e) {
+                                  rDate = rCreatedAtStr;
+                                }
+                              }
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: Colors.grey.shade200,
+                                      backgroundImage: rAvatar.isNotEmpty ? NetworkImage(rAvatar) : null,
+                                      child: rAvatar.isEmpty ? const Icon(Icons.person, size: 14, color: Colors.grey) : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                rUser,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                              Text(
+                                                rDate,
+                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            rContent,
+                                            style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: replyController,
+                          decoration: InputDecoration(
+                            hintText: 'Tulis balasan Anda...',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.send, color: Color(0xFF0D47A1)),
+                        onPressed: () async {
+                          final text = replyController.text.trim();
+                          if (text.isEmpty) return;
+
+                          try {
+                            await context.read<ClassroomRepository>().replyToDiscussion(
+                                  parentId,
+                                  text,
+                                );
+
+                            setModalState(() {
+                              replies.add({
+                                'content': text,
+                                'created_at': DateTime.now().toIso8601String(),
+                                'user': {
+                                  'name': 'Anda',
+                                  'avatar': '',
+                                }
+                              });
+                              replyController.clear();
+                            });
+                            _loadData();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Balasan berhasil dikirim!')),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Gagal: ${e.toString().replaceAll('Exception: ', '')}')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

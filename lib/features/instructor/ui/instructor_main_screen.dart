@@ -4,6 +4,7 @@ import 'package:hlms_mobile/features/instructor/logic/instructor_dashboard_bloc/
 import 'package:hlms_mobile/features/instructor/logic/instructor_dashboard_bloc/instructor_dashboard_event.dart';
 import 'package:hlms_mobile/features/instructor/ui/instructor_home_screen.dart';
 import 'package:hlms_mobile/features/instructor/ui/instructor_course_screen.dart';
+import 'package:hlms_mobile/features/instructor/ui/instructor_batch_screen.dart';
 import 'package:hlms_mobile/features/instructor/ui/instructor_redeem_screen.dart';
 import 'package:hlms_mobile/features/instructor/ui/instructor_profile_screen.dart';
 
@@ -26,6 +27,7 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
       },
     ),
     const InstructorCourseScreen(),
+    const InstructorBatchScreen(),
     const InstructorRedeemScreen(),
     const InstructorProfileScreen(),
   ];
@@ -76,7 +78,11 @@ class _InstructorMainScreenState extends State<InstructorMainScreen> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.school, size: 26),
-              label: 'Courses',
+              label: 'Kursus',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.class_, size: 26),
+              label: 'Kelas',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.account_balance_wallet, size: 26),
